@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Menu, MenuItem, IconButton } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar2 = ({ theme, setTheme }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+  const navigate=useNavigate()
 
   const navItems = ['Home', 'Features', 'Exchanges', 'Coins', 'About', 'Contact'];
 
@@ -52,9 +54,9 @@ const Navbar2 = ({ theme, setTheme }) => {
               horizontal: 'right',
             }}
           >
-            <MenuItem onClick={handleUserMenuClose}>Dashboard</MenuItem>
+            <MenuItem onClick={()=>{navigate("/Journal")}}>Dashboard</MenuItem>
             <MenuItem onClick={handleUserMenuClose}>Home</MenuItem>
-            <MenuItem onClick={handleUserMenuClose}>Profile</MenuItem>
+            <MenuItem onClick={()=>{navigate("/Profile")}}>Profile</MenuItem>
             <MenuItem onClick={handleUserMenuClose}>Logout</MenuItem>
           </Menu>
         </div>
