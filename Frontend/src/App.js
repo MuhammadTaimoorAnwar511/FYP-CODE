@@ -6,6 +6,7 @@ import MarketOverview from '../src/MarketOverview/MarketOverview';
 import Chart from '../src/Charts/Chart'
 import LandingPage from '../src/LandingPage/LandingPage'
 function App() {
+  
   return (
     <Routes>
       <Route path='/' element = {<LandingPage/>}/>

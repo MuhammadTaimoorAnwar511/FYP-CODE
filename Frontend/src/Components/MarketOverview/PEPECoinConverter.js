@@ -1,30 +1,32 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 
 const PEPECoinConverter = () => {
-    useEffect(() => {
-        // Dynamically add the CoinGecko widget script to the page
-        const script = document.createElement('script');
-        script.src = 'https://widgets.coingecko.com/gecko-coin-converter-widget.js';
-        script.async = true;
-        document.body.appendChild(script);
+  useEffect(() => {
+    // Ensure the widget script is added to the DOM
+    const scriptId = "gecko-coin-converter-widget-script";
 
-        return () => {
-            document.body.removeChild(script); // Clean up the script on component unmount
-        };
-    }, []);
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.src = "https://widgets.coingecko.com/gecko-coin-converter-widget.js";
+      script.type = "text/javascript";
+      script.async = true;
+      script.id = scriptId;
 
-    return (
-        <div className="w-full h-full">
-            {/* CoinGecko Coin Converter Widget */}
-            <gecko-coin-converter-widget 
-                locale="en" 
-                dark-mode="true" 
-                outlined="true" 
-                coin-id="pepe" 
-                initial-currency="usd"
-            ></gecko-coin-converter-widget>
-        </div>
-    );
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  return (
+    <div className="pepe-coin-converter-widget w-full h-full">
+      <gecko-coin-converter-widget
+        locale="en"
+        dark-mode="true"
+        transparent-background="true"
+        coin-id="pepe"
+        initial-currency="usd"
+      ></gecko-coin-converter-widget>
+    </div>
+  );
 };
 
 export default PEPECoinConverter;

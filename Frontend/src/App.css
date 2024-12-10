@@ -6,7 +6,10 @@
   height: 40vmin;
   pointer-events: none;
 }
-
+body .gecko-text-light,
+body .gecko-dark {
+  display: none !important;
+}
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;

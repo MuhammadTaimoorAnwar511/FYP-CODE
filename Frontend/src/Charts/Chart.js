@@ -1,13 +1,15 @@
 import React from "react";
-import Navbar from '../Components/Navbar'; 
+import Navbar2 from '../Components/Footer&Navbar/Navbar2'; 
 import TradingViewWidget from "../Components/Charts/TradingViewWidget";
+import Footer from "../Components/Footer&Navbar/Footer";
 
 const Chart = () => {
   return (
+    <>
     <div className="h-screen bg-gray-900 text-white flex flex-col">
       {/* Navbar */}
       <div className="flex-none">
-        <Navbar />
+        <Navbar2 />
       </div>
       
       {/* Content */}
@@ -17,6 +19,8 @@ const Chart = () => {
         </div>
       </div>
     </div>
+    <Footer/>
+    </>
   );
 };
 
