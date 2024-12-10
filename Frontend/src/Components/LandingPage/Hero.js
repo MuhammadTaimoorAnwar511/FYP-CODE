@@ -1,9 +1,26 @@
 import React from "react";
 import { Button } from "@mui/material";
 import BTCLogo from "./BTCLogo";
-import btcImage from "../../Images/cyberpunk-bitcoin-illustration.jpg"; 
+
+// Import multiple images
+import Pic0 from "../../Images/cyberpunk-bitcoin-illustration.jpg";
+import Pic1 from "../../Images/Pic1.png";
+import Pic2 from "../../Images/Pic2.png";
+import Pic3 from "../../Images/Pic3.png";
+import Pic4 from "../../Images/Pic4.png";
+import Pic5 from "../../Images/Pic5.png";
+import Pic6 from "../../Images/Pic6.png";
+import Pic7 from "../../Images/Pic7.png";
+import Pic8 from "../../Images/Pic8.png";
+// Function to select a random image
+const getRandomImage = () => {
+  const images = [Pic0,Pic1,Pic2,Pic3,Pic4,Pic5,Pic6,Pic7,Pic8]; 
+  return images[Math.floor(Math.random() * images.length)];
+};
 
 const Hero = () => {
+  const RandImage = getRandomImage(); // Get a random image
+
   return (
     <section
       id="home"
@@ -26,7 +43,7 @@ const Hero = () => {
 
       {/* Right Content */}
       <div className="md:w-1/2 h-96 flex items-center justify-center">
-        <BTCLogo image={btcImage} /> {/* Pass the image prop here */}
+        <BTCLogo image={RandImage} /> 
       </div>
     </section>
   );
