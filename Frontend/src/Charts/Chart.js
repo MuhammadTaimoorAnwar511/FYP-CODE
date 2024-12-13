@@ -19,7 +19,7 @@ const Chart = () => {
         </div>
       </div>
     </div>
-    <Footer/>
+    {/* <Footer/> */}
     </>
   );
 };

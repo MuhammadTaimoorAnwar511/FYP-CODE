@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import BTCLogo from "./BTCLogo";
 
 // Import multiple images
@@ -12,14 +13,16 @@ import Pic5 from "../../Images/Pic5.png";
 import Pic6 from "../../Images/Pic6.png";
 import Pic7 from "../../Images/Pic7.png";
 import Pic8 from "../../Images/Pic8.png";
+
 // Function to select a random image
 const getRandomImage = () => {
-  const images = [Pic0,Pic1,Pic2,Pic3,Pic4,Pic5,Pic6,Pic7,Pic8]; 
+  const images = [Pic0, Pic1, Pic2, Pic3, Pic4, Pic5, Pic6, Pic7, Pic8];
   return images[Math.floor(Math.random() * images.length)];
 };
 
 const Hero = () => {
   const RandImage = getRandomImage(); // Get a random image
+  const navigate = useNavigate(); // React Router's navigation hook
 
   return (
     <section
@@ -35,7 +38,11 @@ const Hero = () => {
           Connect with top exchanges and let our AI-powered bot trade 24/7, emotionless and efficient.
         </p>
         <div className="mt-6 space-x-4">
-          <Button variant="contained" className="bg-blue-500 hover:bg-blue-600">
+          <Button
+            variant="contained"
+            className="bg-blue-500 hover:bg-blue-600"
+            onClick={() => navigate('/register')} // Navigate to Sign Up page
+          >
             Get Started
           </Button>
         </div>
@@ -43,7 +50,7 @@ const Hero = () => {
 
       {/* Right Content */}
       <div className="md:w-1/2 h-96 flex items-center justify-center">
-        <BTCLogo image={RandImage} /> 
+        <BTCLogo image={RandImage} />
       </div>
     </section>
   );

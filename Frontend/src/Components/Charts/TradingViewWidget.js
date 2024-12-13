@@ -30,8 +30,10 @@ const TradingViewWidget = ({ symbol = "BINANCE:BTCUSDT", interval = "D", theme =
     container.current.appendChild(script);
 
     return () => {
-      // Cleanup script to prevent multiple widget instances
-      container.current.innerHTML = '';
+      // Safely cleanup the container to prevent issues
+      if (container.current) {
+        container.current.innerHTML = '';
+      }
     };
   }, [symbol, interval, theme, autosize]);
 

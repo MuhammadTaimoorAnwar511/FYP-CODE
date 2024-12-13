@@ -1,7 +1,9 @@
 import React from 'react';
 import { Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
-const Landing_Navbar = ({ theme, setTheme }) => {
+const Landing_Navbar = () => {
+  const navigate = useNavigate(); // React Router's navigation hook
   const navItems = ['Home', 'Features', 'Exchanges', 'Coins', 'About', 'Contact'];
 
   return (
@@ -18,10 +20,18 @@ const Landing_Navbar = ({ theme, setTheme }) => {
           ))}
         </nav>
         <div className="flex items-center space-x-4">
-          <Button variant="outlined" className="hidden md:block" onClick={() => alert('Login')}>
+          <Button
+            variant="outlined"
+            className="hidden md:block"
+            onClick={() => navigate('/Login')} // Navigate to Login
+          >
             Login
           </Button>
-          <Button variant="contained" className="hidden md:block bg-blue-500 hover:bg-blue-600" onClick={() => alert('Sign Up')}>
+          <Button
+            variant="contained"
+            className="hidden md:block bg-blue-500 hover:bg-blue-600"
+            onClick={() => navigate('/register')} // Navigate to Sign Up
+          >
             Sign Up
           </Button>
         </div>

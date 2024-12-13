@@ -10,11 +10,14 @@ import BNBCoinConverter from '../Components/MarketOverview/BNBCoinConverter';
 import SOLCoinConverter from '../Components/MarketOverview/SOLCoinConverter';
 import PEPECoinConverter from '../Components/MarketOverview/PEPECoinConverter';
 import Footer from '../Components/Footer&Navbar/Footer';
+import TopStories from '../Components/MarketOverview/top-stories';
+import FearGreed from '../Components/MarketOverview/FearGreed';
+import TechnicalAnalysis from '../Components/MarketOverview/TechnicalAnalysis';
 
 const MarketOverview = () => {
     return (
         <div className="bg-black min-h-screen flex flex-col">
-            {/* Navbar at the top */}
+            {/* Navbar */}
             <div className="flex-none">
                 <Navbar2 />
             </div>
@@ -28,8 +31,8 @@ const MarketOverview = () => {
             <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
                 {/* Left Column */}
                 <div className="flex flex-col gap-6">
-                    {/* Heatmap */}
-                    <div className="bg-black text-white">
+                    {/* Coin Heatmap */}
+                    <div className="bg-black text-white p-4 rounded-lg border border-gray-700">
                         <h2 className="text-center text-xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-blue-700 py-2 rounded-lg">
                             Coin Heatmap
                         </h2>
@@ -39,7 +42,7 @@ const MarketOverview = () => {
                     </div>
 
                     {/* Coin Ticker */}
-                    <div className="bg-black text-white">
+                    <div className="bg-black text-white p-4 rounded-lg border border-gray-700">
                         <h2 className="text-center text-xl font-bold mb-4 bg-gradient-to-r from-green-500 to-green-700 py-2 rounded-lg">
                             Coin Ticker
                         </h2>
@@ -47,12 +50,35 @@ const MarketOverview = () => {
                             <CoinTicker />
                         </div>
                     </div>
+
+                    {/* Fear and Greed + Technical Analysis */}
+                    <div className="flex flex-col lg:flex-row justify-between gap-4">
+                        {/* Fear and Greed Widget */}
+                        <div className="flex-grow bg-black text-white p-4 rounded-lg border border-gray-700">
+                            <h2 className="text-center text-xl font-bold mb-4 bg-gradient-to-r from-red-500 to-red-700 py-2 rounded-lg">
+                                Crypto Fear and Greed Index
+                            </h2>
+                            <div className="flex items-center justify-center w-full h-auto">
+                                <FearGreed />
+                            </div>
+                        </div>
+
+                        {/* Technical Analysis Widget */}
+                        <div className="flex-grow bg-black text-white p-4 rounded-lg border border-gray-700">
+                            <h2 className="text-center text-xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-blue-700 py-2 rounded-lg">
+                                Technical Analysis
+                            </h2>
+                            <div className="flex items-center justify-center w-full h-auto">
+                                <TechnicalAnalysis symbol="BINANCE:BTCUSD" interval="1h" height="400" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Right Column */}
                 <div className="flex flex-col gap-6">
                     {/* Coin List */}
-                    <div className="bg-black text-white">
+                    <div className="bg-black text-white p-4 rounded-lg border border-gray-700">
                         <h2 className="text-center text-xl font-bold mb-4 bg-gradient-to-r from-purple-500 to-purple-700 py-2 rounded-lg">
                             Coin List
                         </h2>
@@ -62,7 +88,7 @@ const MarketOverview = () => {
                     </div>
 
                     {/* Currency Converters */}
-                    <div className="bg-black text-white">
+                    <div className="bg-black text-white p-4 rounded-lg border border-gray-700">
                         <h2 className="text-center text-xl font-bold mb-4 bg-gradient-to-r from-orange-500 to-orange-700 py-2 rounded-lg">
                             Currency Converters
                         </h2>
@@ -84,10 +110,20 @@ const MarketOverview = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Top Stories */}
+                    <div className="bg-black text-white p-4 rounded-lg border border-gray-700 flex flex-col">
+                    <h2 className="text-center text-xl font-bold mb-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white py-2 rounded-lg shadow-md">
+                            Market Top Stories
+                        </h2>
+                        <div className="w-full h-full">
+                            <TopStories />
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Footer at the bottom */}
+            {/* Footer */}
             <div className="flex-none">
                 <Footer />
             </div>

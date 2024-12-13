@@ -6,12 +6,14 @@ import {
   Typography,
   Link,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import GoogleIcon from "../Images/googleIcon.png";
 import cryptoTradeBot from "../Images/tradeBotT.png";
 import FlipLogo from "../Components/LoginandSignup/FlipLogo";
 import walletIcon from "../Images/walletIcon.png";
 
 const LoginPage = () => {
+  const navigate = useNavigate(); 
   return (
     <Box
       sx={{
@@ -265,6 +267,7 @@ const LoginPage = () => {
                 backgroundColor: "#115293",
               },
             }}
+            onClick={() => navigate("/MarketOverview")}
           >
             Log In
           </Button>
@@ -278,7 +281,11 @@ const LoginPage = () => {
             }}
           >
             Don’t have an account?{" "}
-            <Link href="#" variant="body2" sx={{ color: "#1976D2", fontWeight: "bold" }}>
+            <Link
+              component="button"
+              onClick={() => navigate("/register")} 
+              sx={{ color: "#1976D2", fontWeight: "bold" }}
+            >
               Sign up!
             </Link>
           </Typography>
