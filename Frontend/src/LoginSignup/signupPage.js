@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   TextField,
@@ -12,6 +13,12 @@ import FlipLogo from "../Components/LoginandSignup/FlipLogo";
 import walletIcon from "../Images/walletIcon.png";
 
 const SignupPage = () => {
+  const navigate = useNavigate(); // Initialize the navigate function
+
+  const handleSignup = () => {
+    navigate("/login"); // Navigate to the login page
+  };
+
   return (
     <Box
       sx={{
@@ -37,7 +44,7 @@ const SignupPage = () => {
         <Box
           sx={{
             width: "90%",
-            maxWidth: { xs: "25rem", md: "25rem", lg:"35rem" },
+            maxWidth: { xs: "25rem", md: "25rem", lg: "35rem" },
             // maxHeight: { xs: "25rem", md: "25rem", lg:"45rem" },
             textAlign: "center",
             padding: "2rem",
@@ -283,21 +290,22 @@ const SignupPage = () => {
                 backgroundColor: "#115293",
               },
             }}
+            onClick={handleSignup}
           >
             Sign Up
           </Button>
         </Box>
       </Box>
       {/* Right Half */}
-    <Box
-    sx={{
-        flex: 1,
-        backgroundImage: `url(${cryptoTradeBot})`,
-        backgroundSize: "cover",
-        backgroundPosition: "cover",
-        display: { xs: "none", sm: "block" }, // Hide on small devices
-    }}
-    ></Box>
+      <Box
+        sx={{
+          flex: 1,
+          backgroundImage: `url(${cryptoTradeBot})`,
+          backgroundSize: "cover",
+          backgroundPosition: "cover",
+          display: { xs: "none", sm: "block" }, // Hide on small devices
+        }}
+      ></Box>
     </Box>
   );
 };
