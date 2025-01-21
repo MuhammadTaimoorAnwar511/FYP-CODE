@@ -72,7 +72,7 @@ def process_file(file_name):
             return
 
         # Add missing columns
-        df = add_columns(df)
+        #df = add_columns(df)
 
         # Format timestamps
         df = format_timestamps(df, file_name)
