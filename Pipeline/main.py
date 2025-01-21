@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     print("#"*60)
     print(f"Pushing Data to Google Drive")
-    subprocess.run(["python", "Push.py"])
+    #subprocess.run(["python", "Push.py"])
 
 
     print("#"*60)
