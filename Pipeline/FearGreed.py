@@ -158,7 +158,7 @@ def main():
         return
     
     # Fetch data from the API
-    api_data = fetch_fear_and_greed_index_in_range(overall_end_time, overall_start_time)
+    api_data = fetch_fear_and_greed_index_in_range(overall_start_time,overall_end_time)
     
     # Update the CSV files
     update_fear_greed_index(COMBINED_DIR, FILE_NAMES, api_data)
