@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import csv
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -71,9 +72,37 @@ def upload_files_to_folder(service, folder_id, directory, file_names):
         else:
             print(f"File not found: {file_path}")
 
+import csv
+
+def validate_csv_file(file_path):
+    """Check if any cell in the CSV file is empty."""
+    try:
+        with open(file_path, 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            headers = next(reader)  # Skip the header row
+            for row in reader:
+                if len(row) != len(headers) or any(cell.strip() == '' for cell in row):
+                    print(f"Missing data in file: {file_path}")
+                    return False
+    except Exception as e:
+        print(f"Error reading file {file_path}: {e}")
+        return False
+    return True
+
 def main():
     """Main function to delete and upload files to Google Drive."""
     service = authenticate()
+
+    # Validate all files before proceeding
+    for file_name in FILE_NAMES:
+        file_path = os.path.join(COMBINED_DIR, file_name)
+        if os.path.exists(file_path):
+            if not validate_csv_file(file_path):
+                print(f"Skipping file due to missing data: {file_name}")
+                return  # Exit the script if any file is invalid
+        else:
+            print(f"File not found: {file_path}")
+            return  # Exit the script if a file is missing
 
     # Step 1: Delete all files in the specified folder
     print("Deleting existing files in the folder...")
