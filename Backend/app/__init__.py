@@ -1,0 +1,27 @@
+from flask import Flask
+from flask_pymongo import PyMongo
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+# Initialize Flask App
+app = Flask(__name__)
+app.config["MONGO_URI"] = os.getenv("MONGO_URI")
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+
+# Extensions
+mongo = PyMongo(app)
+bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
+
+# Import routes
+from app.routes.auth import auth_bp
+app.register_blueprint(auth_bp, url_prefix="/auth")
+
+@app.route("/")
+def home():
+    return {"message": "Flask Backend is Running!"}
