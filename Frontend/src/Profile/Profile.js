@@ -52,20 +52,84 @@ function ProfilePage() {
     setDropdownOpen(false);
     setFocusedIndex(-1);
   };
-
-  const testConnection = () => {
-    if (apiKey && apiSecret && phrase) {
-      setConnectionStatus('success');
-    } else {
+  
+  const testConnection = async () => {
+    if (!apiKey || !apiSecret || !phrase) {
+      setConnectionStatus('error');
+      setTimeout(() => setConnectionStatus(null), 3000);
+      return;
+    }
+  
+    const API_HOST = process.env.REACT_APP_API_HOST;
+    const API_PORT = process.env.REACT_APP_API_PORT;
+    const BASE_URL = `http://${API_HOST}:${API_PORT}`;
+  
+    try {
+      const response = await fetch(`${BASE_URL}/exchange/TestConnection`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          api_key: apiKey,
+          api_secret: apiSecret,
+          passphrase: phrase,
+        }),
+      });
+  
+      const data = await response.json();
+  
+      if (data.success) {
+        setConnectionStatus('success');
+      } else {
+        setConnectionStatus('error');
+      }
+    } catch (error) {
+      console.error("Error testing connection:", error);
       setConnectionStatus('error');
     }
+  
     setTimeout(() => setConnectionStatus(null), 3000);
   };
-  
 
-  const saveConnection = () => {
-    // Implement save logic
-  };
+  const saveConnection = async () => {
+    const token = localStorage.getItem('access_token');
+
+    console.log("Selected Exchange:", selectedExchange);
+    console.log("API Key:", apiKey);
+    console.log("Secret Key:", apiSecret);
+    console.log("Secret Phrase:", phrase);
+
+    const API_HOST = process.env.REACT_APP_API_HOST;
+    const API_PORT = process.env.REACT_APP_API_PORT;
+    const BASE_URL = `http://${API_HOST}:${API_PORT}`;
+
+    try {
+        const response = await fetch(`${BASE_URL}/user/update-feilds`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                selectedExchange,
+                apiKey,
+                apiSecret,
+                phrase
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            alert("Exchange details updated successfully!");
+        } else {
+            alert(`Error: ${data.message}`);
+        }
+    } catch (error) {
+        console.error("Error updating exchange details:", error);
+        alert("Something went wrong!");
+    }
+};
 
   // Close dropdown when clicked outside
   useEffect(() => {
@@ -178,14 +242,18 @@ function ProfilePage() {
     }
 
     return (
-      <>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-slow">
-          {userData.username}
-        </h1>
-        <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>
-        <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>
-        
-      </>
+    <>
+      <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-slow">
+        {userData?.username}
+      </h1>
+      
+      {userData?.email && <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>}
+      {userData?.country && <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>}
+      {userData?.exchange && <p className="text-gray-300 mt-1 text-sm">{userData.exchange}</p>}
+      {userData?.api_key && <p className="text-gray-300 mt-1 text-sm">{userData.api_key}</p>}
+      {userData?.secret_key && <p className="text-gray-300 mt-1 text-sm">{userData.secret_key}</p>}
+      {userData?.secret_phrase && <p className="text-gray-300 mt-1 text-sm">{userData.secret_phrase}</p>}
+    </>
     );
   };
 
@@ -213,10 +281,8 @@ function ProfilePage() {
               </div>
             </div>
           </div>
-
-          <hr className="my-8 border-gray-700" />
-
-          {/* Stats Section */}
+          {/* Stats Section */} 
+          {/* <hr className="my-8 border-gray-700" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="bg-gray-700 rounded-lg p-4 text-center transition transform hover:-translate-y-1 hover:shadow-lg">
               <p className="text-gray-300 text-sm">Current Balance</p>
@@ -230,7 +296,8 @@ function ProfilePage() {
               <p className="text-gray-300 text-sm">P/L (30d)</p>
               <p className="text-2xl font-bold mt-2 text-green-400">+5.2%</p>
             </div>
-          </div>
+          </div> */}
+          
         </div>
 
         {/* Exchange Connections Section */}

@@ -5,9 +5,10 @@ import hashlib
 import base64
 from datetime import datetime, UTC
 from urllib.parse import urljoin
+from flask_cors import CORS
 
 exchange_bp = Blueprint('exchange', __name__)
-
+CORS(exchange_bp) 
 class OKXClient:
     def __init__(self, api_key, api_secret, passphrase):
         self.api_key = api_key
