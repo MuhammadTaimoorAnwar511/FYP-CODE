@@ -125,7 +125,7 @@ function ProfilePage() {
             <div className="flex items-center gap-6">
               <div className="relative group">
                 <img
-                  src="https://source.unsplash.com/100x100/?face"
+                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/User-avatar.svg/2048px-User-avatar.svg.png"
                   alt="User Avatar"
                   className="w-24 h-24 rounded-full border-4 border-blue-500 shadow-[0_0_15px_#3b82f6] transform transition group-hover:scale-105"
                 />

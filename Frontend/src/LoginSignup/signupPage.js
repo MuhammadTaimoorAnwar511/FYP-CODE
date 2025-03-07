@@ -270,6 +270,7 @@ const SignupPage = () => {
               },
             }}
           >
+            <MenuItem value="PAKISTAN">PAKISTAN</MenuItem>
             <MenuItem value="USA">USA</MenuItem>
             <MenuItem value="India">India</MenuItem>
             <MenuItem value="Canada">Canada</MenuItem>
