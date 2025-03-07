@@ -26,9 +26,11 @@ const LoginPage = () => {
       setError("Please fill in all fields");
       return;
     }
-  
+    const API_HOST = process.env.REACT_APP_API_HOST;
+    const API_PORT = process.env.REACT_APP_API_PORT;
+    const BASE_URL = `http://${API_HOST}:${API_PORT}`;
     try {
-      const response = await fetch("http://localhost:5000/auth/login", {
+      const response = await fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
