@@ -11,12 +11,15 @@ CORS(profile_bp)
 @jwt_required()
 def profile():
     email = get_jwt_identity()  # Extract the email from the JWT token
-    user = mongo.db.users.find_one({"email": email}, {"_id": 0, "password": 0})  # Exclude password and _id
+    user = mongo.db.users.find_one({"email": email}, {"password": False})  # Only exclude password
 
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    return jsonify(user), 200  
+    # Convert ObjectId to string for JSON serialization
+    user["_id"] = str(user["_id"])
+
+    return jsonify(user), 200
 
 @profile_bp.route("/update-feilds", methods=["PUT"])
 @jwt_required()

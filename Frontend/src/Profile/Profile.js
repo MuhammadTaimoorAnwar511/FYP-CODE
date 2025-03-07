@@ -94,6 +94,12 @@ function ProfilePage() {
 
   const saveConnection = async () => {
     const token = localStorage.getItem('access_token');
+
+    console.log("Selected Exchange:", selectedExchange);
+    console.log("API Key:", apiKey);
+    console.log("Secret Key:", apiSecret);
+    console.log("Secret Phrase:", phrase);
+
     const API_HOST = process.env.REACT_APP_API_HOST;
     const API_PORT = process.env.REACT_APP_API_PORT;
     const BASE_URL = `http://${API_HOST}:${API_PORT}`;
@@ -116,19 +122,6 @@ function ProfilePage() {
         const data = await response.json();
         if (response.ok) {
             alert("Exchange details updated successfully!");
-            // Clear input fields immediately after successful save
-            setApiKey('');
-            setApiSecret('');
-            setPhrase('');
-            // Update user data state without refetching
-            setUserData(prev => ({
-              ...prev,
-              exchange: selectedExchange,
-              api_key: '',  // Clear sensitive fields from UI
-              secret_key: '',
-              secret_phrase: ''
-            }));
-            await fetchProfile();
         } else {
             alert(`Error: ${data.message}`);
         }
@@ -197,7 +190,7 @@ function ProfilePage() {
 ///
 
   // Fetch user profile data on component mount
-
+  useEffect(() => {
     const fetchProfile = async () => {
       try {
       const token = localStorage.getItem('access_token'); 
@@ -216,10 +209,6 @@ function ProfilePage() {
         
         const data = await response.json();
         setUserData(data);
-        setSelectedExchange(data.exchange || 'OKX');
-        setApiKey(data.api_key || '');
-        setApiSecret(data.secret_key || '');
-        setPhrase(data.secret_phrase || '');
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -228,9 +217,8 @@ function ProfilePage() {
       }
     };
 
-    useEffect(() => {
-      fetchProfile();
-    }, []);
+    fetchProfile();
+  }, []);
 
   // Update the Hero Section to use fetched data
   const renderProfileInfo = () => {
@@ -258,6 +246,7 @@ function ProfilePage() {
       <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-slow">
         {userData?.username}
       </h1>
+      {userData?._id && <p className="text-gray-300 mt-1 text-sm">{userData._id}</p>}
       {userData?.email && <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>}
       {userData?.country && <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>}
       {userData?.exchange && <p className="text-gray-300 mt-1 text-sm">{userData.exchange}</p>}
@@ -469,8 +458,73 @@ function ProfilePage() {
             </div>
           </div>
         </div>
+        {/* BOT Section */}
+        <div className="mt-5 bg-gray-800 rounded-lg p-8 relative overflow-hidden">
+          <div className="grid grid-cols-5 gap-4">
+            {/* Column 1 */}
+            <div className="flex flex-col items-center">
+              <img 
+                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScGBnEyeJokV07T20QtlOYBLToFxNmbwxBbA&s" 
+                alt="BTC/USDT" 
+                className="w-full h-auto rounded-lg"
+              />
+              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                Subscribe
+              </button>
+            </div>
+
+            {/* Column 2 */}
+            <div className="flex flex-col items-center">
+              <img 
+                src="https://img.freepik.com/premium-photo/ethereum-logo-with-bright-glowing-futuristic-blue-lights-black-background_989822-5692.jpg" 
+                alt="ETH/USDT" 
+                className="w-full h-auto rounded-lg"
+              />
+              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                Subscribe
+              </button>
+            </div>
+
+            {/* Column 3 */}
+            <div className="flex flex-col items-center">
+              <img 
+                src="https://img.freepik.com/premium-psd/3d-icon-black-coin-with-golden-bnb-logo-center_930095-56.jpg" 
+                alt="BNB/USDT" 
+                className="w-full h-auto rounded-lg"
+              />
+              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                Subscribe
+              </button>
+            </div>
+
+            {/* Column 4 */}
+            <div className="flex flex-col items-center">
+              <img 
+                src="https://thumbs.dreamstime.com/b/solana-logo-coin-icon-isolated-cryptocurrency-token-vector-sol-blockchain-crypto-bank-254180447.jpg" 
+                alt="SOL/USDT" 
+                className="w-full h-auto rounded-lg"
+              />
+              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                Subscribe
+              </button>
+            </div>
+
+            {/* Column 5 */}
+            <div className="flex flex-col items-center">
+              <img 
+                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToNJ9OKQv_DIjonr1s_TFrZbqN9hFjsD86eA&s" 
+                alt="PEPE/USDT" 
+                className="w-full h-auto rounded-lg"
+              />
+              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                Subscribe
+              </button>
+            </div>
+          </div>
+        </div>
 
       </div>
+      
       <div className="flex-none">
                 <Footer />
             </div>

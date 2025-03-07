@@ -25,6 +25,9 @@ from app.routes.profile import profile_bp
 app.register_blueprint(profile_bp, url_prefix="/user")
 from app.routes.exchange import exchange_bp
 app.register_blueprint(exchange_bp, url_prefix="/exchange")
+from app.routes.subscription import subscription_bp
+app.register_blueprint(subscription_bp, url_prefix="/subscription") 
+
 
 @app.route("/")
 def home():
