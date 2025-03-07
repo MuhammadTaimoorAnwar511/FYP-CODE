@@ -1,206 +1,107 @@
-import React, { useState } from "react";
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Link,
-} from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import GoogleIcon from "../Images/googleIcon.png";
-import cryptoTradeBot from "../Images/tradeBotT.png";
-import FlipLogo from "../Components/LoginandSignup/FlipLogo";
-import walletIcon from "../Images/walletIcon.png";
+import React, { useState, useRef, useEffect } from 'react';
+// ... other imports remain the same
 
-const LoginPage = () => {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+const API_HOST = process.env.REACT_APP_API_HOST;
+const API_PORT = process.env.REACT_APP_API_PORT;
+const BASE_URL = `http://${API_HOST}:${API_PORT}`;
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
+function ProfilePage() {
+  // Add state for user data
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    try {
-      const response = await fetch("http://localhost:5000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  // Existing states remain the same
+  const [selectedExchange, setSelectedExchange] = useState('OKX');
+  // ... other existing states
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+  // Fetch user profile data on component mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('access_token'); // Assuming token is stored here
+        const response = await fetch(`${BASE_URL}/auth/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+        
+        const data = await response.json();
+        setUserData(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Store the access token in localStorage
-      localStorage.setItem("accessToken", data.access_token);
-      
-      // Redirect to market overview
-      navigate("/MarketOverview");
-    } catch (err) {
-      setError(err.message);
+    fetchProfile();
+  }, []);
+
+  // Update the Hero Section to use fetched data
+  const renderProfileInfo = () => {
+    if (loading) {
+      return (
+        <div className="space-y-2">
+          <div className="h-8 bg-gray-700 rounded animate-pulse w-48"></div>
+          <div className="h-4 bg-gray-700 rounded animate-pulse w-64"></div>
+          <div className="h-4 bg-gray-700 rounded animate-pulse w-32"></div>
+        </div>
+      );
     }
+
+    if (error || !userData) {
+      return (
+        <div className="text-red-400">
+          <ErrorOutlineIcon className="mr-2" />
+          Error loading profile data
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-slow">
+          {userData.username}
+        </h1>
+        <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>
+        <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>
+      </>
+    );
   };
 
+  // Modified Hero Section JSX
   return (
-    <Box
-      sx={{
-        display: "flex",
-        height: "100vh",
-        width: "100%",
-        fontFamily: "Poppins, sans-serif",
-      }}
-    >
-      {/* Left Half */}
-      <Box
-        sx={{
-          flex: 1,
-          backgroundImage: `url(${cryptoTradeBot})`,
-          backgroundSize: "cover",
-          backgroundPosition: "cover",
-          display: { xs: "none", sm: "block" },
-        }}
-      ></Box>
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* ... other components remain the same */}
+      
+      {/* Updated Hero Section */}
+      <div className="bg-gray-800 rounded-lg p-8 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20 bg-gradient-to-tr from-gray-700 to-gray-900"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/User-avatar.svg/2048px-User-avatar.svg.png"
+                alt="User Avatar"
+                className="w-24 h-24 rounded-full border-4 border-blue-500 shadow-[0_0_15px_#3b82f6] transform transition group-hover:scale-105"
+              />
+            </div>
+            <div>
+              {renderProfileInfo()}
+            </div>
+          </div>
+        </div>
 
-      {/* Right Half */}
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#000000",
-          overflow: "hidden",
-          padding: { xs: "1.5rem", md: "2rem" },
-        }}
-      >
-        <Box
-          component="form"
-          onSubmit={handleLogin}
-          sx={{
-            width: "90%",
-            maxWidth: {xs: "25rem", md: "25rem", lg: "35rem"},
-            textAlign: "center",
-            padding: "2rem",
-            backgroundColor: "#FFFFFF",
-            borderRadius: "16px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            outline: "2px solid #16A647",
-            mx: "auto",
-          }}
-        >
-          {/* Logo */}
-          <FlipLogo image={walletIcon} />
-          
-          {/* Error Message */}
-          {error && (
-            <Typography color="error" sx={{ mb: 2 }}>
-              {error}
-            </Typography>
-          )}
-
-          {/* Welcome Text */}
-          <Typography
-            variant="h4"
-            sx={{
-              color: "#111111",
-              fontWeight: "bold",
-              mb: 1,
-              fontSize: { xs: "1.5rem", md: "2rem" },
-            }}
-          >
-            Welcome Back
-          </Typography>
-          <Typography
-            variant="subtitle1"
-            sx={{
-              color: "#666666",
-              mb: 3,
-              fontSize: { xs: "0.9rem", md: "1rem" },
-            }}
-          >
-            Login into your account
-          </Typography>
-
-          {/* Google Login (unchanged) */}
-
-          {/* Form Fields */}
-          <TextField
-            required
-            fullWidth
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            variant="outlined"
-            sx={{
-              mb: 2,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "10px",
-                "& fieldset": { borderColor: "#CCCCCC" },
-                "&:hover fieldset": { borderColor: "#999999" },
-                "&.Mui-focused fieldset": { borderColor: "#1976D2" },
-              },
-            }}
-          />
-
-          <TextField
-            required
-            fullWidth
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            variant="outlined"
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "10px",
-                "& fieldset": { borderColor: "#CCCCCC" },
-                "&:hover fieldset": { borderColor: "#999999" },
-                "&.Mui-focused fieldset": { borderColor: "#1976D2" },
-              },
-            }}
-          />
-
-          {/* Remember Me (unchanged) */}
-
-          {/* Login Button */}
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{
-              backgroundColor: "#1976D2",
-              color: "#FFFFFF",
-              ":hover": { backgroundColor: "#115293" },
-              // ... rest of styles
-            }}
-          >
-            Log In
-          </Button>
-
-          {/* Sign Up Link */}
-          <Typography sx={{ mt: 3, color: "#666666" }}>
-            Don’t have an account?{" "}
-            <Link
-              component="button"
-              onClick={() => navigate("/register")}
-              sx={{ color: "#1976D2", fontWeight: "bold" }}
-            >
-              Sign up!
-            </Link>
-          </Typography>
-        </Box>
-      </Box>
-    </Box>
+        {/* ... rest of the component remains the same */}
+      </div>
+    </div>
   );
-};
+}
 
-export default LoginPage;
+export default ProfilePage;

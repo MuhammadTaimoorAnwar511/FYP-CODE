@@ -45,7 +45,7 @@ const LoginPage = () => {
       }
 
       // Store the access token in localStorage
-      localStorage.setItem("accessToken", data.access_token);
+      localStorage.setItem("access_token", data.access_token); 
       console.log(data.access_token);
       // Redirect to market overview
       navigate("/MarketOverview");

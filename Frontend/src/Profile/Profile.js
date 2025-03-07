@@ -8,7 +8,16 @@ import SearchIcon from '@mui/icons-material/Search';
 import Navbar2 from "../Components/Footer&Navbar/Navbar2"
 import Footer from "../Components/Footer&Navbar/Footer"
 
+const API_HOST = process.env.REACT_APP_API_HOST;
+const API_PORT = process.env.REACT_APP_API_PORT;
+const BASE_URL = `http://${API_HOST}:${API_PORT}`;
+
 function ProfilePage() {
+  
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [selectedExchange, setSelectedExchange] = useState('OKX');
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
@@ -110,6 +119,74 @@ function ProfilePage() {
     }
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [dropdownOpen, focusedIndex, filteredExchanges]);
+///
+
+  // Fetch user profile data on component mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+      const token = localStorage.getItem('access_token'); // Assuming token is stored here
+      console.log(token);
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+        const response = await fetch(`${BASE_URL}/auth/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+        
+        const data = await response.json();
+        setUserData(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // Update the Hero Section to use fetched data
+  const renderProfileInfo = () => {
+    if (loading) {
+      return (
+        <div className="space-y-2">
+          <div className="h-8 bg-gray-700 rounded animate-pulse w-48"></div>
+          <div className="h-4 bg-gray-700 rounded animate-pulse w-64"></div>
+          <div className="h-4 bg-gray-700 rounded animate-pulse w-32"></div>
+        </div>
+      );
+    }
+
+    if (error || !userData) {
+      return (
+        <div className="text-red-400">
+          <ErrorOutlineIcon className="mr-2" />
+          Error loading profile data
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-slow">
+          {userData.username}
+        </h1>
+        <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>
+        <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>
+      </>
+    );
+  };
+
+///
+
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -131,17 +208,19 @@ function ProfilePage() {
                 />
               </div>
               <div>
-                <h1 
+                {/* <h1 
                   className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-slow"
                   style={{
                     animationDuration: '3s',
                     animationIterationCount: 'infinite',
                     animationDirection: 'alternate'
                   }}
-                >
-                  John Doe
+                > */}
+                  {/* John Doe
                 </h1>
                 <p className="text-gray-300 mt-1 text-sm">johndoe@example.com</p>
+                <p className="text-gray-300 mt-1 text-sm">PAKISTAN</p> */}
+                {renderProfileInfo()}
               </div>
             </div>
           </div>
