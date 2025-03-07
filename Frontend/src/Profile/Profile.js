@@ -9,7 +9,7 @@ import Navbar2 from "../Components/Footer&Navbar/Navbar2"
 import Footer from "../Components/Footer&Navbar/Footer"
 
 function ProfilePage() {
-  const [selectedExchange, setSelectedExchange] = useState('Binance');
+  const [selectedExchange, setSelectedExchange] = useState('OKX');
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [connectionStatus, setConnectionStatus] = useState(null);
@@ -22,17 +22,9 @@ function ProfilePage() {
   const buttonRef = useRef(null);
 
   const exchanges = [
-    { name: 'Binance', icon: 'https://cryptoicons.org/api/icon/bnb/32' },
-    { name: 'OKX', icon: 'https://cryptoicons.org/api/icon/btc/32' },
-    { name: 'BYBIT', icon: 'https://cryptoicons.org/api/icon/eth/32' },
-    { name: 'Coinbase', icon: 'https://cryptoicons.org/api/icon/btc/32' },
-    { name: 'Kraken', icon: 'https://cryptoicons.org/api/icon/eth/32' },
-    { name: 'KuCoin', icon: 'https://cryptoicons.org/api/icon/bnb/32' },
-    { name: 'Bitfinex', icon: 'https://cryptoicons.org/api/icon/btc/32' },
-    { name: 'Gemini', icon: 'https://cryptoicons.org/api/icon/eth/32' },
-    { name: 'Bitstamp', icon: 'https://cryptoicons.org/api/icon/bnb/32' },
-    { name: 'Poloniex', icon: 'https://cryptoicons.org/api/icon/btc/32' },
-    { name: 'Huobi', icon: 'https://cryptoicons.org/api/icon/eth/32' },
+    { name: 'OKX', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSu0QUtkN8EjVWEgvIfiQ5G7Wq833qsFYzL8g&s' },
+    { name: 'Binance (Coming soon)', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsKz71ieYKv2qQ_qixqjTeoGJ9rhFWu5q--A&s' },
+    { name: 'BYBIT (Coming soon)', icon: 'https://play-lh.googleusercontent.com/SJxOSA2a2WY2RYQKv99kKCQVVqA5tmgw2VHn_YY0gL4riv7eDDjZ46X5_6Jge-Ur8uo' },
   ];
 
   // Filter exchanges based on search term
@@ -174,7 +166,7 @@ function ProfilePage() {
         </div>
 
         {/* Exchange Connections Section */}
-        <div className="bg-gray-800 rounded-lg p-8 mt-12 relative overflow-hidden">
+        <div className="bg-gray-800 rounded-lg p-8 mt-12 relative overflow-hidden min-h-[410px]">
           <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-gray-700 to-gray-900"></div>
           <div className="relative z-10 border-b border-gray-700 pb-4 mb-8">
             <h2 className="text-2xl font-bold">Exchange Connections</h2>
