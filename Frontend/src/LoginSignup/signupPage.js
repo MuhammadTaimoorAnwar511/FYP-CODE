@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -13,10 +13,49 @@ import FlipLogo from "../Components/LoginandSignup/FlipLogo";
 import walletIcon from "../Images/walletIcon.png";
 
 const SignupPage = () => {
-  const navigate = useNavigate(); // Initialize the navigate function
+  const navigate = useNavigate();
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSignup = () => {
-    navigate("/login"); // Navigate to the login page
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Client-side validation
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          country,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Signup failed");
+      }
+
+      // If successful, redirect to login
+      navigate("/login");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -42,25 +81,28 @@ const SignupPage = () => {
         }}
       >
         <Box
+          component="form"
+          onSubmit={handleSubmit}
           sx={{
             width: "90%",
             maxWidth: { xs: "25rem", md: "25rem", lg: "35rem" },
-            // maxHeight: { xs: "25rem", md: "25rem", lg:"45rem" },
             textAlign: "center",
             padding: "2rem",
             backgroundColor: "#FFFFFF",
             borderRadius: "16px",
             boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
             outline: "2px solid #16A647",
-            // height: "auto",
-            // overflow: "hidden", // Prevent overflow
-            // overflowY: "auto",
-            mx: "auto", // Center the box horizontally
+            mx: "auto",
           }}
         >
           {/* Logo */}
           <FlipLogo image={walletIcon} />
-
+          {/* Error Message */}
+          {error && (
+            <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+              {error}
+            </Typography>
+          )}
           {/* Welcome Text */}
           <Typography
             variant="h4"
@@ -160,6 +202,8 @@ const SignupPage = () => {
           <TextField
             fullWidth
             label="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             variant="outlined"
             sx={{
               mb: 2,
@@ -182,6 +226,8 @@ const SignupPage = () => {
           <TextField
             fullWidth
             label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             variant="outlined"
             sx={{
               mb: 2,
@@ -205,6 +251,8 @@ const SignupPage = () => {
             select
             fullWidth
             label="Country"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
             variant="outlined"
             sx={{
               mb: 2,
@@ -233,6 +281,8 @@ const SignupPage = () => {
             fullWidth
             label="Password"
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             variant="outlined"
             sx={{
               mb: 2,
@@ -256,6 +306,8 @@ const SignupPage = () => {
             fullWidth
             label="Confirm Password"
             type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             variant="outlined"
             sx={{
               mb: 3,
@@ -276,6 +328,7 @@ const SignupPage = () => {
 
           {/* Signup Button */}
           <Button
+            type="submit"
             variant="contained"
             fullWidth
             sx={{
@@ -290,12 +343,12 @@ const SignupPage = () => {
                 backgroundColor: "#115293",
               },
             }}
-            onClick={handleSignup}
           >
             Sign Up
           </Button>
         </Box>
       </Box>
+
       {/* Right Half */}
       <Box
         sx={{
