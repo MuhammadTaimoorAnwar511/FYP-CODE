@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_cors import CORS
 from app import bcrypt, mongo
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_jwt_extended import create_access_token
 import re
 
@@ -46,7 +45,11 @@ def signup():
         "username": username,
         "email": email,
         "country": country,
-        "password": hashed_password
+        "password": hashed_password,
+        "exchange": None,
+        "api_key": None,
+        "secret_key": None,
+        "secret_phrase": None
     }
 
     mongo.db.users.insert_one(user_data)
@@ -70,14 +73,3 @@ def login():
     access_token = create_access_token(identity=email)
 
     return jsonify({"access_token": access_token}), 200
-
-@auth_bp.route("/profile", methods=["GET"])
-@jwt_required()  # Protects the route with JWT authentication
-def profile():
-    email = get_jwt_identity()  # Extract the email from the JWT token
-    user = mongo.db.users.find_one({"email": email}, {"_id": 0, "password": 0})  # Exclude password and _id
-
-    if not user:
-        return jsonify({"message": "User not found"}), 404
-
-    return jsonify(user), 200  # Return user details

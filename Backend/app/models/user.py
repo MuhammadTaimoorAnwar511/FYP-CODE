@@ -11,5 +11,10 @@ class User:
             "username": username,
             "email": email,
             "country": country,
-            "password": hashed_password
+            "password": hashed_password,
+            "exchange": None,
+            "api_key": None,
+            "secret_key": None,
+            "secret_phrase": None
         })
+

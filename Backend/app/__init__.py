@@ -21,6 +21,8 @@ jwt = JWTManager(app)
 # Import routes
 from app.routes.auth import auth_bp
 app.register_blueprint(auth_bp, url_prefix="/auth")
+from app.routes.profile import profile_bp
+app.register_blueprint(profile_bp, url_prefix="/user")
 
 @app.route("/")
 def home():

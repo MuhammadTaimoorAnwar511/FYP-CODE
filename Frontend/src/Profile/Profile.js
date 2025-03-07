@@ -129,12 +129,11 @@ function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-      const token = localStorage.getItem('access_token'); // Assuming token is stored here
-      console.log(token);
+      const token = localStorage.getItem('access_token'); 
       if (!token) {
         throw new Error('No authentication token found');
       }
-        const response = await fetch(`${BASE_URL}/auth/profile`, {
+        const response = await fetch(`${BASE_URL}/user/profile`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -212,18 +211,6 @@ function ProfilePage() {
                 />
               </div>
               <div>
-                {/* <h1 
-                  className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-slow"
-                  style={{
-                    animationDuration: '3s',
-                    animationIterationCount: 'infinite',
-                    animationDirection: 'alternate'
-                  }}
-                > */}
-                  {/* John Doe
-                </h1>
-                <p className="text-gray-300 mt-1 text-sm">johndoe@example.com</p>
-                <p className="text-gray-300 mt-1 text-sm">PAKISTAN</p> */}
                 {renderProfileInfo()}
               </div>
             </div>
