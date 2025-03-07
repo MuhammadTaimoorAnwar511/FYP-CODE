@@ -21,6 +21,8 @@ function ProfilePage() {
   const [selectedExchange, setSelectedExchange] = useState('OKX');
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
+  const [phrase, setPhrase] = useState('');
+
   const [connectionStatus, setConnectionStatus] = useState(null);
   
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -45,19 +47,21 @@ function ProfilePage() {
     setSelectedExchange(exchange.name);
     setApiKey('');
     setApiSecret('');
+    setPhrase('')
     setConnectionStatus(null);
     setDropdownOpen(false);
     setFocusedIndex(-1);
   };
 
   const testConnection = () => {
-    if (apiKey && apiSecret) {
+    if (apiKey && apiSecret && phrase) {
       setConnectionStatus('success');
     } else {
       setConnectionStatus('error');
     }
     setTimeout(() => setConnectionStatus(null), 3000);
   };
+  
 
   const saveConnection = () => {
     // Implement save logic
@@ -245,14 +249,14 @@ function ProfilePage() {
         </div>
 
         {/* Exchange Connections Section */}
-        <div className="bg-gray-800 rounded-lg p-8 mt-12 relative overflow-hidden min-h-[410px]">
+        <div className="bg-gray-800 rounded-lg p-8 mt-12 relative overflow-hidden min-h-[430px]">
           <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-gray-700 to-gray-900"></div>
           <div className="relative z-10 border-b border-gray-700 pb-4 mb-8">
             <h2 className="text-2xl font-bold">Exchange Connections</h2>
             <p className="text-gray-300 text-sm mt-2">Link and manage your exchange accounts securely.</p>
           </div>
 
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Enhanced, Scrollable, Searchable and Accessible Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <label className="block text-gray-200 mb-2" htmlFor="exchange">
@@ -353,6 +357,22 @@ function ProfilePage() {
               />
               <p className="text-gray-300 text-sm mt-1">Enter your Secret Key from the exchange.</p>
             </div>
+            
+            <div> 
+            <label className="block text-gray-200 mb-2" htmlFor="phrase">
+              Secret Phrase
+            </label>
+            <input
+              type="text"
+              id="phrase"
+              value={phrase}
+              onChange={(e) => setPhrase(e.target.value)}
+              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" 
+              placeholder="Enter your Phrase"
+            />
+            <p className="text-gray-300 text-sm mt-1">Enter your security phrase from the exchange.</p>
+          </div>
+
           </div>
 
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between mt-10">
