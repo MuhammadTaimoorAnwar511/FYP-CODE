@@ -184,12 +184,10 @@ function ProfilePage() {
         </h1>
         <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>
         <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>
+        
       </>
     );
   };
-
-///
-
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">

@@ -23,6 +23,8 @@ from app.routes.auth import auth_bp
 app.register_blueprint(auth_bp, url_prefix="/auth")
 from app.routes.profile import profile_bp
 app.register_blueprint(profile_bp, url_prefix="/user")
+from app.routes.exchange import exchange_bp
+app.register_blueprint(exchange_bp, url_prefix="/exchange")
 
 @app.route("/")
 def home():
