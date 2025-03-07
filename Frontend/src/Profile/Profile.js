@@ -94,12 +94,6 @@ function ProfilePage() {
 
   const saveConnection = async () => {
     const token = localStorage.getItem('access_token');
-
-    console.log("Selected Exchange:", selectedExchange);
-    console.log("API Key:", apiKey);
-    console.log("Secret Key:", apiSecret);
-    console.log("Secret Phrase:", phrase);
-
     const API_HOST = process.env.REACT_APP_API_HOST;
     const API_PORT = process.env.REACT_APP_API_PORT;
     const BASE_URL = `http://${API_HOST}:${API_PORT}`;
@@ -122,6 +116,19 @@ function ProfilePage() {
         const data = await response.json();
         if (response.ok) {
             alert("Exchange details updated successfully!");
+            // Clear input fields immediately after successful save
+            setApiKey('');
+            setApiSecret('');
+            setPhrase('');
+            // Update user data state without refetching
+            setUserData(prev => ({
+              ...prev,
+              exchange: selectedExchange,
+              api_key: '',  // Clear sensitive fields from UI
+              secret_key: '',
+              secret_phrase: ''
+            }));
+            await fetchProfile();
         } else {
             alert(`Error: ${data.message}`);
         }
@@ -190,7 +197,7 @@ function ProfilePage() {
 ///
 
   // Fetch user profile data on component mount
-  useEffect(() => {
+
     const fetchProfile = async () => {
       try {
       const token = localStorage.getItem('access_token'); 
@@ -209,6 +216,10 @@ function ProfilePage() {
         
         const data = await response.json();
         setUserData(data);
+        setSelectedExchange(data.exchange || 'OKX');
+        setApiKey(data.api_key || '');
+        setApiSecret(data.secret_key || '');
+        setPhrase(data.secret_phrase || '');
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -217,8 +228,9 @@ function ProfilePage() {
       }
     };
 
-    fetchProfile();
-  }, []);
+    useEffect(() => {
+      fetchProfile();
+    }, []);
 
   // Update the Hero Section to use fetched data
   const renderProfileInfo = () => {
@@ -246,7 +258,6 @@ function ProfilePage() {
       <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-pulse-slow">
         {userData?.username}
       </h1>
-      
       {userData?.email && <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>}
       {userData?.country && <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>}
       {userData?.exchange && <p className="text-gray-300 mt-1 text-sm">{userData.exchange}</p>}
@@ -263,7 +274,6 @@ function ProfilePage() {
                 <Navbar2 />
             </div>
       <div className="max-w-7xl mx-auto py-12 px-6">
-        
         {/* Hero Section */}
         <div className="bg-gray-800 rounded-lg p-8 relative overflow-hidden">
           <div className="absolute inset-0 opacity-20 bg-gradient-to-tr from-gray-700 to-gray-900"></div>
@@ -297,7 +307,6 @@ function ProfilePage() {
               <p className="text-2xl font-bold mt-2 text-green-400">+5.2%</p>
             </div>
           </div> */}
-          
         </div>
 
         {/* Exchange Connections Section */}
