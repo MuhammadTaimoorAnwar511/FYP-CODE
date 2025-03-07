@@ -6,7 +6,7 @@ from app import app
 load_dotenv()
 
 # Get port from .env or default to 5000
-port = int(os.getenv("PORT"))
+port = int(os.getenv("FLASK_RUN_PORT"))
 
 if __name__ == "__main__":
     app.run(debug=True, port=port)

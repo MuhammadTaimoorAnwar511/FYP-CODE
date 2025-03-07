@@ -10,7 +10,7 @@ load_dotenv()
 
 # Initialize Flask App
 app = Flask(__name__)
-app.config["MONGO_URI"] = os.getenv("MONGO_URI")
+app.config["MONGO_URI"] = os.getenv("MONGO_URI") + os.getenv("MONGO_DB")
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
 # Extensions
