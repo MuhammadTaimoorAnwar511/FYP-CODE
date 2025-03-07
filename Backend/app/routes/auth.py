@@ -1,8 +1,23 @@
+import re
 from flask import Blueprint, request, jsonify
 from app import bcrypt, mongo
 from flask_jwt_extended import create_access_token
 
 auth_bp = Blueprint("auth", __name__)
+
+# Password validation function
+def is_strong_password(password):
+    if len(password) < 8:
+        return "Password must be at least 8 characters long"
+    if not re.search(r"[A-Z]", password):
+        return "Password must contain at least one uppercase letter"
+    if not re.search(r"[a-z]", password):
+        return "Password must contain at least one lowercase letter"
+    if not re.search(r"\d", password):
+        return "Password must contain at least one digit"
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return "Password must contain at least one special character"
+    return None  # Valid password
 
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
@@ -15,8 +30,14 @@ def signup():
     if not username or not email or not country or not password:
         return jsonify({"message": "All fields are required"}), 400
 
+    # Check for existing username or email
     if mongo.db.users.find_one({"$or": [{"username": username}, {"email": email}]}):
         return jsonify({"message": "Username or Email already exists"}), 400
+
+    # Validate password strength
+    password_error = is_strong_password(password)
+    if password_error:
+        return jsonify({"message": password_error}), 400
 
     hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
 
@@ -37,25 +58,14 @@ def login():
     email = data.get("email")
     password = data.get("password")
 
-    # Ensure both email and password are provided
     if not email or not password:
         return jsonify({"message": "Email and password are required"}), 400
 
-    # Find user by email only
     user = mongo.db.users.find_one({"email": email})
 
-    # Check if user exists and verify password
     if not user or not bcrypt.check_password_hash(user["password"], password):
         return jsonify({"message": "Invalid email or password"}), 401
 
-    # Generate JWT token using email as identity
     access_token = create_access_token(identity=email)
 
-    return jsonify({
-        "access_token": access_token
-        # "user": {
-        #     "username": user["username"],
-        #     "email": user["email"],
-        #     "country": user["country"]
-        # }
-    }), 200
+    return jsonify({"access_token": access_token}), 200
