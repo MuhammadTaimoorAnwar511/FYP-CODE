@@ -1,9 +1,11 @@
-import re
 from flask import Blueprint, request, jsonify
+from flask_cors import CORS
 from app import bcrypt, mongo
 from flask_jwt_extended import create_access_token
+import re
 
 auth_bp = Blueprint("auth", __name__)
+CORS(auth_bp) 
 
 # Password validation function
 def is_strong_password(password):
@@ -30,11 +32,9 @@ def signup():
     if not username or not email or not country or not password:
         return jsonify({"message": "All fields are required"}), 400
 
-    # Check for existing username or email
     if mongo.db.users.find_one({"$or": [{"username": username}, {"email": email}]}):
         return jsonify({"message": "Username or Email already exists"}), 400
 
-    # Validate password strength
     password_error = is_strong_password(password)
     if password_error:
         return jsonify({"message": password_error}), 400
