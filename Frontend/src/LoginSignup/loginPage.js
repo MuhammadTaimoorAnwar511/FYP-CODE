@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState }  from "react";
 import {
   Box,
   TextField,
@@ -13,7 +13,45 @@ import FlipLogo from "../Components/LoginandSignup/FlipLogo";
 import walletIcon from "../Images/walletIcon.png";
 
 const LoginPage = () => {
-  const navigate = useNavigate(); 
+
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+  
+    try {
+      const response = await fetch("http://localhost:5000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // Store the access token in localStorage
+      localStorage.setItem("accessToken", data.access_token);
+      console.log(data.access_token);
+      // Redirect to market overview
+      navigate("/MarketOverview");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -48,6 +86,8 @@ const LoginPage = () => {
         }}
       >
         <Box
+          component="form"
+          onSubmit={handleLogin}
           sx={{
             width: "90%",
             maxWidth: {xs: "25rem", md: "25rem", lg: "35rem"},
@@ -62,6 +102,12 @@ const LoginPage = () => {
         >
           {/* Logo */}
           <FlipLogo image={walletIcon} />
+          {/* Error Message */}
+          {error && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
           {/* Welcome Text */}
           <Typography
             variant="h4"
@@ -162,6 +208,9 @@ const LoginPage = () => {
           <TextField
             fullWidth
             label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             variant="outlined"
             InputProps={{
               sx: {
@@ -192,6 +241,8 @@ const LoginPage = () => {
             fullWidth
             label="Password"
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             variant="outlined"
             InputProps={{
               sx: {
@@ -253,6 +304,7 @@ const LoginPage = () => {
 
           {/* Login Button */}
           <Button
+            type="submit"
             variant="contained"
             fullWidth
             sx={{
@@ -267,7 +319,6 @@ const LoginPage = () => {
                 backgroundColor: "#115293",
               },
             }}
-            onClick={() => navigate("/MarketOverview")}
           >
             Log In
           </Button>
