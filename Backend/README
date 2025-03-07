@@ -3,5 +3,10 @@ python -m venv venv
 Set-ExecutionPolicy Unrestricted -Scope Process
 venv\Scripts\activate
 flask run --reload
+======
+{
+    "api_key": "76f64742-8ef1-4a83-8613-74b4ea988962",
+    "api_secret": "08D5354EEC5B4FFF0AAAD3FEC3A3A559",
+    "passphrase": "Ta@1@2@3@4@5"
+}
 
-ok
