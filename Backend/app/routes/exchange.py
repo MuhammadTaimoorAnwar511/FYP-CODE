@@ -118,3 +118,38 @@ def update_exchange():
     mongo.db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": update_data})
     
     return jsonify({"message": "Exchange details updated successfully"}), 200
+
+@exchange_bp.route('/DeleteConnection', methods=['DELETE'])
+@jwt_required()
+def DeleteConnection():
+    try:
+        user_email = get_jwt_identity()  # Extract user email from JWT token
+        
+        # Find user by email
+        user = mongo.db.users.find_one({"email": user_email})
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+        
+        # Check if the user is subscribed to any bot
+        active_subscriptions = list(mongo.db.subscriptions.find({"user_id": user["_id"]}))
+        if active_subscriptions:
+            subscribed_bots = [sub["bot_name"] for sub in active_subscriptions]
+            return jsonify({
+                "error": "Unsubscribe bots first.",
+                "subscribed_bots": subscribed_bots
+            }), 400
+
+        # Update the user’s exchange connection fields to null
+        update_result = mongo.db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {
+                "exchange": None,
+                "api_key": None,
+                "secret_key": None,
+                "secret_phrase": None
+            }}
+        )
+
+        return jsonify({"message": "Exchange connection deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
