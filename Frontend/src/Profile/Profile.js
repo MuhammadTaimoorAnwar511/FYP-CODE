@@ -31,7 +31,99 @@ function ProfilePage() {
 
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+/////  
+  const [subscriptions, setSubscriptions] = useState({});
+  const [isBotModalOpen, setIsBotModalOpen] = useState(false);
+  const [selectedBot, setSelectedBot] = useState("");
+  const [balance, setBalance] = useState("");
 
+  const openModal = (botName) => {
+    setSelectedBot(botName);
+    setIsBotModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsBotModalOpen(false);
+    setBalance("");
+  };
+
+  const handleConfirm = async () => {
+    try {
+      // Prepare the data for the API request
+      const data = {
+        bot_name: selectedBot, // Assuming `selectedBot` is the bot name that was selected by the user
+        user_id: userData._id, // Replace with actual user ID, if dynamic
+        balance_allocated: balance, // Use the user input balance value
+      };
+  
+      // Send the POST request to create the subscription
+      const response = await fetch(`${BASE_URL}/subscription/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+  
+      // Check if the response is successful
+      if (response.ok) {
+        // Optionally, handle success (e.g., show a success message or update state)
+        console.log("Subscription created successfully");
+      } else {
+        // Handle error (e.g., show an error message)
+        console.error("Failed to create subscription");
+      }
+    } catch (error) {
+      // Handle any errors that occur during the request
+      console.error("An error occurred:", error);
+    }
+  
+    // Close the modal after the request
+    closeModal();
+  };
+  
+  // Function to check subscription status
+  const checkSubscriptionStatus = async (botName) => {
+    const response = await fetch(`${BASE_URL}/subscription/status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: userData?._id,
+        bot_name: botName,
+      }),
+    });
+
+    const data = await response.json();
+    return data.subscribed; // Returns true or false based on subscription status
+  };
+
+  // Fetch subscription status for all bots on component mount
+  useEffect(() => {
+    const fetchSubscriptions = async () => {
+      const botNames = [
+        "BTC_USDT",
+        "ETH_USDT",
+        "BNB_USDT",
+        "SOL_USDT",
+        "PEPE_USDT",
+      ];
+
+      let subscriptionStatus = {};
+      for (let botName of botNames) {
+        const isSubscribed = await checkSubscriptionStatus(botName);
+        subscriptionStatus[botName] = isSubscribed;
+      }
+      setSubscriptions(subscriptionStatus);
+    };
+
+    if (userData?._id) {
+      fetchSubscriptions();
+    }
+  }, [userData]);
+
+/////  
   const exchanges = [
     { name: 'OKX', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSu0QUtkN8EjVWEgvIfiQ5G7Wq833qsFYzL8g&s' },
     { name: 'Binance (Coming soon)', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsKz71ieYKv2qQ_qixqjTeoGJ9rhFWu5q--A&s' },
@@ -59,11 +151,7 @@ function ProfilePage() {
       setTimeout(() => setConnectionStatus(null), 3000);
       return;
     }
-  
-    const API_HOST = process.env.REACT_APP_API_HOST;
-    const API_PORT = process.env.REACT_APP_API_PORT;
-    const BASE_URL = `http://${API_HOST}:${API_PORT}`;
-  
+    
     try {
       const response = await fetch(`${BASE_URL}/exchange/TestConnection`, {
         method: "POST",
@@ -99,10 +187,6 @@ function ProfilePage() {
     console.log("API Key:", apiKey);
     console.log("Secret Key:", apiSecret);
     console.log("Secret Phrase:", phrase);
-
-    const API_HOST = process.env.REACT_APP_API_HOST;
-    const API_PORT = process.env.REACT_APP_API_PORT;
-    const BASE_URL = `http://${API_HOST}:${API_PORT}`;
 
     try {
         const response = await fetch(`${BASE_URL}/user/update-feilds`, {
@@ -259,9 +343,9 @@ function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-          <div className="flex-none">
-                <Navbar2 />
-            </div>
+      <div className="flex-none">
+        <Navbar2 />
+      </div>
       <div className="max-w-7xl mx-auto py-12 px-6">
         {/* Hero Section */}
         <div className="bg-gray-800 rounded-lg p-8 relative overflow-hidden">
@@ -280,22 +364,6 @@ function ProfilePage() {
               </div>
             </div>
           </div>
-          {/* Stats Section */} 
-          {/* <hr className="my-8 border-gray-700" />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="bg-gray-700 rounded-lg p-4 text-center transition transform hover:-translate-y-1 hover:shadow-lg">
-              <p className="text-gray-300 text-sm">Current Balance</p>
-              <p className="text-2xl font-bold mt-2">$23,452.00</p>
-            </div>
-            <div className="bg-gray-700 rounded-lg p-4 text-center transition transform hover:-translate-y-1 hover:shadow-lg">
-              <p className="text-gray-300 text-sm">Trades Executed</p>
-              <p className="text-2xl font-bold mt-2">342</p>
-            </div>
-            <div className="bg-gray-700 rounded-lg p-4 text-center transition transform hover:-translate-y-1 hover:shadow-lg">
-              <p className="text-gray-300 text-sm">P/L (30d)</p>
-              <p className="text-2xl font-bold mt-2 text-green-400">+5.2%</p>
-            </div>
-          </div> */}
         </div>
 
         {/* Exchange Connections Section */}
@@ -458,76 +526,71 @@ function ProfilePage() {
             </div>
           </div>
         </div>
-        {/* BOT Section */}
-        <div className="mt-5 bg-gray-800 rounded-lg p-8 relative overflow-hidden">
-          <div className="grid grid-cols-5 gap-4">
-            {/* Column 1 */}
-            <div className="flex flex-col items-center">
-              <img 
-                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScGBnEyeJokV07T20QtlOYBLToFxNmbwxBbA&s" 
-                alt="BTC/USDT" 
-                className="w-full h-auto rounded-lg"
-              />
-              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
-                Subscribe
-              </button>
-            </div>
+      {/* BOT Section */}
+    <div className="mt-5 bg-gray-800 rounded-lg p-8 relative overflow-hidden">
+    <div className="relative z-10 border-b border-gray-700 pb-4 mb-8">
+      <h2 className="text-2xl font-bold">Availabel BOTS</h2>
+      <p className="text-gray-300 text-sm mt-2">Subscribe or Unsubscribe to bots.</p>
+    </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[
+          { name: "BTC_USDT", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScGBnEyeJokV07T20QtlOYBLToFxNmbwxBbA&s" },
+          { name: "ETH_USDT", img: "https://img.freepik.com/premium-photo/ethereum-logo-with-bright-glowing-futuristic-blue-lights-black-background_989822-5692.jpg" },
+          { name: "BNB_USDT", img: "https://img.freepik.com/premium-psd/3d-icon-black-coin-with-golden-bnb-logo-center_930095-56.jpg" },
+          { name: "SOL_USDT", img: "https://thumbs.dreamstime.com/b/solana-logo-coin-icon-isolated-cryptocurrency-token-vector-sol-blockchain-crypto-bank-254180447.jpg" },
+          { name: "PEPE_USDT", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToNJ9OKQv_DIjonr1s_TFrZbqN9hFjsD86eA&s" },
+        ].map((bot, index) => (
+          <div key={index} className="flex flex-col items-center">
+            <img src={bot.img} alt={bot.name} className="w-full h-auto rounded-lg" />
+            <button
+              onClick={() => openModal(bot.name)}
+              className={`mt-2 ${subscriptions[bot.name] ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"} text-white font-bold py-2 px-4 rounded-lg`}
+            >
+              {subscriptions[bot.name] ? "Unsubscribe" : "Subscribe"}
+            </button>
+          </div>
+        ))}
+      </div>
 
-            {/* Column 2 */}
-            <div className="flex flex-col items-center">
-              <img 
-                src="https://img.freepik.com/premium-photo/ethereum-logo-with-bright-glowing-futuristic-blue-lights-black-background_989822-5692.jpg" 
-                alt="ETH/USDT" 
-                className="w-full h-auto rounded-lg"
-              />
-              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
-                Subscribe
-              </button>
-            </div>
+      {isBotModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 rounded-lg p-6 shadow-lg max-w-md w-full">
+            <h2 className="text-2xl font-bold text-white mb-4">Subscribe to {selectedBot}</h2>
+            <p className="text-gray-300 text-sm mb-4">Enter the amount you'd like to use for this bot.</p>
 
-            {/* Column 3 */}
-            <div className="flex flex-col items-center">
-              <img 
-                src="https://img.freepik.com/premium-psd/3d-icon-black-coin-with-golden-bnb-logo-center_930095-56.jpg" 
-                alt="BNB/USDT" 
-                className="w-full h-auto rounded-lg"
-              />
-              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
-                Subscribe
-              </button>
-            </div>
+            <input
+              type="number"
+              value={balance}
+              onChange={(e) => setBalance(e.target.value)}
+              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Enter balance"
+            />
 
-            {/* Column 4 */}
-            <div className="flex flex-col items-center">
-              <img 
-                src="https://thumbs.dreamstime.com/b/solana-logo-coin-icon-isolated-cryptocurrency-token-vector-sol-blockchain-crypto-bank-254180447.jpg" 
-                alt="SOL/USDT" 
-                className="w-full h-auto rounded-lg"
-              />
-              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
-                Subscribe
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={closeModal}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded-lg transition"
+              >
+                Cancel
               </button>
-            </div>
-
-            {/* Column 5 */}
-            <div className="flex flex-col items-center">
-              <img 
-                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToNJ9OKQv_DIjonr1s_TFrZbqN9hFjsD86eA&s" 
-                alt="PEPE/USDT" 
-                className="w-full h-auto rounded-lg"
-              />
-              <button className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
-                Subscribe
+              <button
+                onClick={handleConfirm}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition"
+              >
+                Confirm
               </button>
             </div>
           </div>
         </div>
+      )}
+    </div>
 
       </div>
-      
+    
       <div className="flex-none">
-                <Footer />
-            </div>
+        <Footer />
+      </div>
+
     </div>
   );
 }
