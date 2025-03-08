@@ -39,20 +39,21 @@ def create_subscription():
     
     return jsonify({"message": "Subscription created", "subscription_id": str(subscription_id)}), 201
 
-@subscription_bp.route("/delete/<user_id>", methods=["DELETE"])
-def delete_subscription(user_id):
+
+@subscription_bp.route("/delete/<user_id>/<bot_name>", methods=["DELETE"])
+def delete_subscription(user_id, bot_name):
     try:
         user_object_id = ObjectId(user_id)
     except:
         return jsonify({"error": "Invalid user_id format"}), 400
 
-    # Delete all subscriptions for the given user ID
-    result = mongo.db.subscriptions.delete_many({"user_id": user_object_id})
+    # Delete the subscription for the given user ID and bot name
+    result = mongo.db.subscriptions.delete_one({"user_id": user_object_id, "bot_name": bot_name})
 
     if result.deleted_count == 0:
-        return jsonify({"error": "No subscriptions found for this user"}), 404
+        return jsonify({"error": "No subscription found for this user and bot"}), 404
 
-    return jsonify({"message": "Subscriptions deleted", "deleted_count": result.deleted_count}), 200
+    return jsonify({"message": "Subscription deleted"}), 200
 
 # Check if user is subscribed to a specific bot
 @subscription_bp.route("/status", methods=["POST"])

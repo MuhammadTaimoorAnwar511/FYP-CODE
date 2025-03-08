@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 import requests
 import hmac
 import hashlib
@@ -6,9 +7,12 @@ import base64
 from datetime import datetime, UTC
 from urllib.parse import urljoin
 from flask_cors import CORS
+from app import mongo
+from bson.objectid import ObjectId
 
 exchange_bp = Blueprint('exchange', __name__)
 CORS(exchange_bp) 
+
 class OKXClient:
     def __init__(self, api_key, api_secret, passphrase):
         self.api_key = api_key
@@ -77,3 +81,40 @@ def balance():
             return jsonify({'success': False})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@exchange_bp.route("/SaveConnection", methods=["PUT"])
+@jwt_required()
+def update_exchange():
+    email = get_jwt_identity()  # Extract the email from the JWT token
+    user = mongo.db.users.find_one({"email": email})
+    
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    
+    data = request.json  # Get JSON data from the request body
+    
+    # Extract API credentials
+    api_key = data.get("apiKey")
+    api_secret = data.get("apiSecret")
+    passphrase = data.get("phrase")
+
+    if not all([api_key, api_secret, passphrase]):
+        return jsonify({"message": "Missing required API credentials"}), 400
+
+    # Create client instance and test connection
+    client = OKXClient(api_key, api_secret, passphrase)
+    if not client.test_connection():
+        return jsonify({"message": "API connection test failed"}), 400
+
+    # If test is successful, save connection
+    update_data = {
+        "exchange": data.get("selectedExchange"),
+        "api_key": api_key,
+        "secret_key": api_secret,
+        "secret_phrase": passphrase,
+    }
+    
+    mongo.db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": update_data})
+    
+    return jsonify({"message": "Exchange details updated successfully"}), 200

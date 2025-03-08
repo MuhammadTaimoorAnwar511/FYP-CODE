@@ -91,13 +91,8 @@ function ProfilePage() {
   const saveConnection = async () => {
     const token = localStorage.getItem('access_token');
 
-    console.log("Selected Exchange:", selectedExchange);
-    console.log("API Key:", apiKey);
-    console.log("Secret Key:", apiSecret);
-    console.log("Secret Phrase:", phrase);
-
     try {
-        const response = await fetch(`${BASE_URL}/user/update-feilds`, {
+        const response = await fetch(`${BASE_URL}/exchange/SaveConnection`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -339,13 +334,13 @@ function ProfilePage() {
   };
   
  
-   const handleUnsubscribe = async () => {
-    if (!userData?._id) {
-      alert("User ID is missing!");
+  const handleUnsubscribe = async () => {
+    if (!userData?._id || !selectedBot) {
+      alert("User ID or bot name is missing!");
       return;
     }
   
-    const response = await fetch(`${BASE_URL}/subscription/delete/${userData._id}`, {
+    const response = await fetch(`${BASE_URL}/subscription/delete/${userData._id}/${selectedBot}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -363,6 +358,7 @@ function ProfilePage() {
   
     closeModal();
   };
+  
   
  ///
   return (
