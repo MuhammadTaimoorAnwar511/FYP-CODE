@@ -6,6 +6,9 @@ from flask_cors import CORS
 
 subscription_bp = Blueprint("subscription", __name__)
 CORS(subscription_bp) 
+from flask import request, jsonify
+from bson import ObjectId
+
 @subscription_bp.route("/create", methods=["POST"])
 def create_subscription():
     data = request.get_json()
@@ -27,7 +30,11 @@ def create_subscription():
     if not user:
         return jsonify({"error": "User does not exist"}), 404
 
-    # Create subscription if user exists
+    # Check if the required fields are present and not null for the user
+    if any(field not in user or user[field] is None for field in ["exchange", "api_key", "secret_key", "secret_phrase"]):
+        return jsonify({"error": "First Connect exchange"}), 400
+
+    # Create subscription if all conditions are met
     subscription_id = Subscription.create_subscription(bot_name, user_object_id, balance_allocated)
     
     return jsonify({"message": "Subscription created", "subscription_id": str(subscription_id)}), 201

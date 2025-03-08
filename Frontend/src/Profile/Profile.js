@@ -31,99 +31,7 @@ function ProfilePage() {
 
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
-/////  
-  const [subscriptions, setSubscriptions] = useState({});
-  const [isBotModalOpen, setIsBotModalOpen] = useState(false);
-  const [selectedBot, setSelectedBot] = useState("");
-  const [balance, setBalance] = useState("");
-
-  const openModal = (botName) => {
-    setSelectedBot(botName);
-    setIsBotModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsBotModalOpen(false);
-    setBalance("");
-  };
-
-  const handleConfirm = async () => {
-    try {
-      // Prepare the data for the API request
-      const data = {
-        bot_name: selectedBot, // Assuming `selectedBot` is the bot name that was selected by the user
-        user_id: userData._id, // Replace with actual user ID, if dynamic
-        balance_allocated: balance, // Use the user input balance value
-      };
-  
-      // Send the POST request to create the subscription
-      const response = await fetch(`${BASE_URL}/subscription/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-  
-      // Check if the response is successful
-      if (response.ok) {
-        // Optionally, handle success (e.g., show a success message or update state)
-        console.log("Subscription created successfully");
-      } else {
-        // Handle error (e.g., show an error message)
-        console.error("Failed to create subscription");
-      }
-    } catch (error) {
-      // Handle any errors that occur during the request
-      console.error("An error occurred:", error);
-    }
-  
-    // Close the modal after the request
-    closeModal();
-  };
-  
-  // Function to check subscription status
-  const checkSubscriptionStatus = async (botName) => {
-    const response = await fetch(`${BASE_URL}/subscription/status`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: userData?._id,
-        bot_name: botName,
-      }),
-    });
-
-    const data = await response.json();
-    return data.subscribed; // Returns true or false based on subscription status
-  };
-
-  // Fetch subscription status for all bots on component mount
-  useEffect(() => {
-    const fetchSubscriptions = async () => {
-      const botNames = [
-        "BTC_USDT",
-        "ETH_USDT",
-        "BNB_USDT",
-        "SOL_USDT",
-        "PEPE_USDT",
-      ];
-
-      let subscriptionStatus = {};
-      for (let botName of botNames) {
-        const isSubscribed = await checkSubscriptionStatus(botName);
-        subscriptionStatus[botName] = isSubscribed;
-      }
-      setSubscriptions(subscriptionStatus);
-    };
-
-    if (userData?._id) {
-      fetchSubscriptions();
-    }
-  }, [userData]);
-
-/////  
+ 
   const exchanges = [
     { name: 'OKX', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSu0QUtkN8EjVWEgvIfiQ5G7Wq833qsFYzL8g&s' },
     { name: 'Binance (Coming soon)', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsKz71ieYKv2qQ_qixqjTeoGJ9rhFWu5q--A&s' },
@@ -271,7 +179,7 @@ function ProfilePage() {
     }
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [dropdownOpen, focusedIndex, filteredExchanges]);
-///
+
 
   // Fetch user profile data on component mount
   useEffect(() => {
@@ -341,6 +249,122 @@ function ProfilePage() {
     );
   };
 
+ ///
+ 
+   const [subscriptions, setSubscriptions] = useState({});
+   const [isBotModalOpen, setIsBotModalOpen] = useState(false);
+   const [isUnsubscribeModalOpen, setIsUnsubscribeModalOpen] = useState(false);
+   const [selectedBot, setSelectedBot] = useState("");
+   const [balance, setBalance] = useState("");
+ 
+   const checkSubscriptionStatus = async (botName) => {
+     const response = await fetch(`${BASE_URL}/subscription/status`, {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+       },
+       body: JSON.stringify({
+         user_id: userData?._id,
+         bot_name: botName,
+       }),
+     });
+ 
+     const data = await response.json();
+     return data.subscribed;
+   };
+ 
+   useEffect(() => {
+     const fetchSubscriptions = async () => {
+       const botNames = [
+         "BTC_USDT",
+         "ETH_USDT",
+         "BNB_USDT",
+         "SOL_USDT",
+         "PEPE_USDT",
+       ];
+ 
+       let subscriptionStatus = {};
+       for (let botName of botNames) {
+         const isSubscribed = await checkSubscriptionStatus(botName);
+         subscriptionStatus[botName] = isSubscribed;
+       }
+       setSubscriptions(subscriptionStatus);
+     };
+ 
+     if (userData?._id) {
+       fetchSubscriptions();
+     }
+   }, [userData]);
+ 
+   const handleButtonClick = (botName) => {
+     setSelectedBot(botName);
+     if (subscriptions[botName]) {
+       setIsUnsubscribeModalOpen(true);
+     } else {
+       setIsBotModalOpen(true);
+     }
+   };
+ 
+   const closeModal = () => {
+     setIsBotModalOpen(false);
+     setIsUnsubscribeModalOpen(false);
+     setSelectedBot("");
+     setBalance("");
+   };
+ 
+   const handleSubscribe = async () => {
+    const response = await fetch(`${BASE_URL}/subscription/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bot_name: selectedBot,
+        user_id: userData?._id,
+        balance_allocated: balance,
+      }),
+    });
+  
+    const data = await response.json();
+    
+    // Check if there is an error in the response
+    if (data.error) {
+      alert(data.error); // Display the error message to the user
+    } else if (data.message) {
+      setSubscriptions(prev => ({ ...prev, [selectedBot]: true }));
+      alert(data.message); // Display the success message
+    }
+  
+    closeModal();
+  };
+  
+ 
+   const handleUnsubscribe = async () => {
+    if (!userData?._id) {
+      alert("User ID is missing!");
+      return;
+    }
+  
+    const response = await fetch(`${BASE_URL}/subscription/delete/${userData._id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  
+    const data = await response.json();
+  
+    if (data.message) {
+      setSubscriptions(prev => ({ ...prev, [selectedBot]: false }));
+      alert(data.message);
+    } else if (data.error) {
+      alert(data.error);
+    }
+  
+    closeModal();
+  };
+  
+ ///
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="flex-none">
@@ -527,11 +551,7 @@ function ProfilePage() {
           </div>
         </div>
       {/* BOT Section */}
-    <div className="mt-5 bg-gray-800 rounded-lg p-8 relative overflow-hidden">
-    <div className="relative z-10 border-b border-gray-700 pb-4 mb-8">
-      <h2 className="text-2xl font-bold">Availabel BOTS</h2>
-      <p className="text-gray-300 text-sm mt-2">Subscribe or Unsubscribe to bots.</p>
-    </div>
+      <div className="mt-5 bg-gray-800 rounded-lg p-8 relative overflow-hidden">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           { name: "BTC_USDT", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScGBnEyeJokV07T20QtlOYBLToFxNmbwxBbA&s" },
@@ -543,7 +563,7 @@ function ProfilePage() {
           <div key={index} className="flex flex-col items-center">
             <img src={bot.img} alt={bot.name} className="w-full h-auto rounded-lg" />
             <button
-              onClick={() => openModal(bot.name)}
+              onClick={() => handleButtonClick(bot.name)}
               className={`mt-2 ${subscriptions[bot.name] ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"} text-white font-bold py-2 px-4 rounded-lg`}
             >
               {subscriptions[bot.name] ? "Unsubscribe" : "Subscribe"}
@@ -552,6 +572,7 @@ function ProfilePage() {
         ))}
       </div>
 
+      {/* Subscribe Modal */}
       {isBotModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-gray-800 rounded-lg p-6 shadow-lg max-w-md w-full">
@@ -574,7 +595,7 @@ function ProfilePage() {
                 Cancel
               </button>
               <button
-                onClick={handleConfirm}
+                onClick={handleSubscribe}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition"
               >
                 Confirm
@@ -583,10 +604,35 @@ function ProfilePage() {
           </div>
         </div>
       )}
-    </div>
 
+      {/* Unsubscribe Modal */}
+      {isUnsubscribeModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-gray-800 rounded-lg p-6 shadow-lg max-w-md w-full">
+            <h2 className="text-2xl font-bold text-white mb-4">Confirm Unsubscription</h2>
+            <p className="text-gray-300 text-sm mb-4">
+              Are you sure you want to unsubscribe from {selectedBot}?
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={closeModal}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUnsubscribe}
+                className="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
       </div>
-    
       <div className="flex-none">
         <Footer />
       </div>
