@@ -362,7 +362,7 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
   const [isBotModalOpen, setIsBotModalOpen] = useState(false)
   const [isUnsubscribeModalOpen, setIsUnsubscribeModalOpen] = useState(false)
   const [selectedBot, setSelectedBot] = useState("")
-  const [balance, setBalance] = useState("")
+  const [balance, setBalance] = useState("100")
   const { showNotification } = useNotification()
 
   const bots = [
@@ -525,10 +525,21 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
             <input
               type="number"
               value={balance}
-              onChange={(e) => setBalance(e.target.value)}
+              onChange={(e) => {
+                let newValue = Number(e.target.value);
+
+                // Ensure the value is at least 100 USDT
+                if (newValue < 100) {
+                  newValue = 100;
+                }
+
+                setBalance(newValue);
+              }}
+              min="100"  // Ensures the input UI also prevents values below 100
               className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Enter balance"
             />
+
 
             <div className="flex justify-end gap-3">
               <button
