@@ -27,7 +27,8 @@ from app.routes.exchange import exchange_bp
 app.register_blueprint(exchange_bp, url_prefix="/exchange")
 from app.routes.subscription import subscription_bp
 app.register_blueprint(subscription_bp, url_prefix="/subscription") 
-
+from app.routes.botdetail import botdetail_bp
+app.register_blueprint(botdetail_bp, url_prefix="/bot") 
 
 @app.route("/")
 def home():

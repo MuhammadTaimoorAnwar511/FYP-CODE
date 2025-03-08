@@ -12,6 +12,59 @@ const API_HOST = process.env.REACT_APP_API_HOST;
 const API_PORT = process.env.REACT_APP_API_PORT;
 const BASE_URL = `http://${API_HOST}:${API_PORT}`;
 
+// Add this new component above the ProfilePage component
+const BotStats = ({ botName }) => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/bot/detail?botname=${botName}`);
+        if (!response.ok) throw new Error('Failed to fetch bot stats');
+        const data = await response.json();
+        setStats(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [botName]);
+
+  if (loading) return <div className="mt-2 text-gray-400 text-sm">Loading stats...</div>;
+  if (error) return <div className="mt-2 text-red-400 text-sm">Error loading stats</div>;
+
+  return (
+    <div className="w-full mt-4 p-3 bg-gray-700 rounded-lg">
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="text-blue-400">Total Trades:</div>
+        <div className="text-right">{stats['Total Trades']}</div>
+
+        <div className="text-green-400">Win Rate:</div>
+        <div className="text-right">{stats['Win Rate (%)'].toFixed(2)}%</div>
+        
+        <div className="text-green-400">Winning Trades:</div>
+        <div className="text-right">{stats['Winning Trades']}</div>
+
+        <div className="text-green-400">Max Winning Streak:</div>
+        <div className="text-right">{stats['Max Winning Streak']}</div>
+        
+        <div className="text-red-400">Losing Trades:</div>
+        <div className="text-right">{stats['Losing Trades']}</div>
+
+        <div className="text-red-400">Max Losing Streak:</div>
+        <div className="text-right">{stats['Max Losing Streak']}</div>
+    
+      </div>
+    </div>
+  );
+}
+;
 function ProfilePage() {
   
   const [userData, setUserData] = useState(null);
@@ -38,6 +91,7 @@ function ProfilePage() {
     { name: 'BYBIT (Coming soon)', icon: 'https://play-lh.googleusercontent.com/SJxOSA2a2WY2RYQKv99kKCQVVqA5tmgw2VHn_YY0gL4riv7eDDjZ46X5_6Jge-Ur8uo' },
   ];
 
+  
   // Filter exchanges based on search term
   const filteredExchanges = exchanges.filter((ex) =>
     ex.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -554,10 +608,12 @@ function ProfilePage() {
           { name: "ETH_USDT", img: "https://img.freepik.com/premium-photo/ethereum-logo-with-bright-glowing-futuristic-blue-lights-black-background_989822-5692.jpg" },
           { name: "BNB_USDT", img: "https://img.freepik.com/premium-psd/3d-icon-black-coin-with-golden-bnb-logo-center_930095-56.jpg" },
           { name: "SOL_USDT", img: "https://thumbs.dreamstime.com/b/solana-logo-coin-icon-isolated-cryptocurrency-token-vector-sol-blockchain-crypto-bank-254180447.jpg" },
-          { name: "PEPE_USDT", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToNJ9OKQv_DIjonr1s_TFrZbqN9hFjsD86eA&s" },
+          { name: "1000PEPE_USDT", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToNJ9OKQv_DIjonr1s_TFrZbqN9hFjsD86eA&s" },
         ].map((bot, index) => (
           <div key={index} className="flex flex-col items-center">
             <img src={bot.img} alt={bot.name} className="w-full h-auto rounded-lg" />
+            {/* Add BotStats component here */}
+            <BotStats botName={bot.name} />
             <button
               onClick={() => handleButtonClick(bot.name)}
               className={`mt-2 ${subscriptions[bot.name] ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"} text-white font-bold py-2 px-4 rounded-lg`}

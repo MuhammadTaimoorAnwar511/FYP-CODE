@@ -39,7 +39,6 @@ def create_subscription():
     
     return jsonify({"message": "Subscription created", "subscription_id": str(subscription_id)}), 201
 
-
 @subscription_bp.route("/delete/<user_id>/<bot_name>", methods=["DELETE"])
 def delete_subscription(user_id, bot_name):
     try:
