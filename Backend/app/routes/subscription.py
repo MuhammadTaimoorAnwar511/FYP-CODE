@@ -3,11 +3,12 @@ from app.models.subscription import Subscription
 from bson import ObjectId
 from app import mongo
 from flask_cors import CORS
+from flask import request, jsonify
+from bson import ObjectId
+
 
 subscription_bp = Blueprint("subscription", __name__)
 CORS(subscription_bp) 
-from flask import request, jsonify
-from bson import ObjectId
 
 @subscription_bp.route("/create", methods=["POST"])
 def create_subscription():
@@ -22,21 +23,27 @@ def create_subscription():
     try:
         # Convert user_id string to ObjectId
         user_object_id = ObjectId(user_id)
+        balance_allocated = float(balance_allocated)  # Ensure balance is a number
     except:
-        return jsonify({"error": "Invalid user_id format"}), 400
+        return jsonify({"error": "Invalid input format"}), 400
 
     # Check if the user exists in the users collection
     user = mongo.db.users.find_one({"_id": user_object_id})
     if not user:
         return jsonify({"error": "User does not exist"}), 404
 
-    # Check if the required fields are present and not null for the user
-    if any(field not in user or user[field] is None for field in ["exchange", "api_key", "secret_key", "secret_phrase"]):
+    # Ensure user has connected exchange credentials
+    required_fields = ["exchange", "api_key", "secret_key", "secret_phrase"]
+    if any(field not in user or user[field] is None for field in required_fields):
         return jsonify({"error": "First Connect exchange"}), 400
 
-    # Create subscription if all conditions are met
+    # Update user's balance
+    new_balance = user.get("Balance", 0) + balance_allocated
+    mongo.db.users.update_one({"_id": user_object_id}, {"$set": {"Balance": new_balance}})
+
+    # Create subscription
     subscription_id = Subscription.create_subscription(bot_name, user_object_id, balance_allocated)
-    
+
     return jsonify({"message": "Subscription created", "subscription_id": str(subscription_id)}), 201
 
 @subscription_bp.route("/delete/<user_id>/<bot_name>", methods=["DELETE"])
@@ -46,11 +53,25 @@ def delete_subscription(user_id, bot_name):
     except:
         return jsonify({"error": "Invalid user_id format"}), 400
 
-    # Delete the subscription for the given user ID and bot name
-    result = mongo.db.subscriptions.delete_one({"user_id": user_object_id, "bot_name": bot_name})
+    # Find the subscription to get the allocated balance
+    subscription = mongo.db.subscriptions.find_one({"user_id": user_object_id, "bot_name": bot_name})
 
-    if result.deleted_count == 0:
+    if not subscription:
         return jsonify({"error": "No subscription found for this user and bot"}), 404
+
+    balance_allocated = subscription.get("balance_allocated", 0)
+
+    # Find the user to update balance
+    user = mongo.db.users.find_one({"_id": user_object_id})
+    if not user:
+        return jsonify({"error": "User does not exist"}), 404
+
+    # Deduct balance from user
+    new_balance = max(user.get("Balance", 0) - balance_allocated, 0)  # Ensure balance never goes negative
+    mongo.db.users.update_one({"_id": user_object_id}, {"$set": {"Balance": new_balance}})
+
+    # Delete the subscription
+    result = mongo.db.subscriptions.delete_one({"user_id": user_object_id, "bot_name": bot_name})
 
     return jsonify({"message": "Subscription deleted"}), 200
 

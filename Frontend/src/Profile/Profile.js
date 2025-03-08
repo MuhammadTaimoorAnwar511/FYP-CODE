@@ -351,6 +351,7 @@ const ProfileInfo = ({ userData, loading, error }) => {
       {userData?._id && <p className="text-gray-300 mt-1 text-sm">{userData._id}</p>}
       {userData?.email && <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>}
       {userData?.country && <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>}
+      {userData?.Balance !== undefined && (<p className={`mt-1 text-sm font-semibold ${userData.Balance === 0 ? "text-red-500" : "text-green-400"}`}>Balance: ${userData.Balance}</p>)}
     </>
   )
 }
