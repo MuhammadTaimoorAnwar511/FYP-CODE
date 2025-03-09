@@ -22,6 +22,8 @@ const API_HOST = process.env.REACT_APP_API_HOST
 const API_PORT = process.env.REACT_APP_API_PORT
 const BASE_URL = `http://${API_HOST}:${API_PORT}`
 
+// ==================== CONTEXT PROVIDERS ====================
+
 // Notification Context
 const NotificationContext = createContext(undefined)
 
@@ -60,7 +62,8 @@ const NotificationProvider = ({ children }) => {
   )
 }
 
-// Notification Toast Component
+// ==================== NOTIFICATION COMPONENTS ====================
+
 const NotificationToast = () => {
   const { notifications, dismissNotification } = useNotification()
 
@@ -101,7 +104,8 @@ const NotificationToast = () => {
   )
 }
 
-// Bot statistics component
+// ==================== BOT COMPONENTS ====================
+
 const BotStats = ({ botName }) => {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -134,8 +138,24 @@ const BotStats = ({ botName }) => {
         <div className="text-blue-400">Total Trades:</div>
         <div className="text-right">{stats["Total Trades"]}</div>
 
-        <div className="text-green-400">Win Rate:</div>
-        <div className="text-right">{stats["Win Rate (%)"].toFixed(2)}%</div>
+        <div className="text-blue-400">ROI (%):</div>
+        <div className={`text-right ${stats["ROI (%)"] < 0 ? "text-red-500" : "text-green-500"}`}>
+            {stats["ROI (%)"].toFixed(2)}%
+        </div>
+
+        <div className="text-blue-400">Win Rate:</div>
+        <div
+            className={`text-right ${
+                stats["Win Rate (%)"] < 40
+                    ? "text-red-500"
+                    : stats["Win Rate (%)"] < 50
+                    ? "text-yellow-500"
+                    : "text-green-500"
+            }`}
+        >
+            {stats["Win Rate (%)"].toFixed(2)}%
+        </div>
+
 
         <div className="text-green-400">Winning Trades:</div>
         <div className="text-right">{stats["Winning Trades"]}</div>
@@ -153,15 +173,9 @@ const BotStats = ({ botName }) => {
   )
 }
 
-// Exchange selector component
-const ExchangeSelector = ({
-  selectedExchange,
-  setSelectedExchange,
-  setApiKey,
-  setApiSecret,
-  setPhrase,
-  setConnectionStatus,
-}) => {
+// ==================== EXCHANGE COMPONENTS ====================
+
+const ExchangeSelector = ({ selectedExchange, setSelectedExchange, setApiKey, setApiSecret, setConnectionStatus }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [focusedIndex, setFocusedIndex] = useState(-1)
@@ -170,16 +184,16 @@ const ExchangeSelector = ({
 
   const exchanges = [
     {
-      name: "OKX",
+      name: "BYBIT",
+      icon: "https://play-lh.googleusercontent.com/SJxOSA2a2WY2RYQKv99kKCQVVqA5tmgw2VHn_YY0gL4riv7eDDjZ46X5_6Jge-Ur8uo",
+    },
+    {
+      name: "OKX (Coming soon)",
       icon: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSu0QUtkN8EjVWEgvIfiQ5G7Wq833qsFYzL8g&s",
     },
     {
       name: "Binance (Coming soon)",
       icon: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsKz71ieYKv2qQ_qixqjTeoGJ9rhFWu5q--A&s",
-    },
-    {
-      name: "BYBIT (Coming soon)",
-      icon: "https://play-lh.googleusercontent.com/SJxOSA2a2WY2RYQKv99kKCQVVqA5tmgw2VHn_YY0gL4riv7eDDjZ46X5_6Jge-Ur8uo",
     },
   ]
 
@@ -190,7 +204,6 @@ const ExchangeSelector = ({
     setSelectedExchange(exchange.name)
     setApiKey("")
     setApiSecret("")
-    setPhrase("")
     setConnectionStatus(null)
     setDropdownOpen(false)
     setFocusedIndex(-1)
@@ -322,7 +335,8 @@ const ExchangeSelector = ({
   )
 }
 
-// Profile information component
+// ==================== PROFILE COMPONENTS ====================
+
 const ProfileInfo = ({ userData, loading, error }) => {
   if (loading) {
     return (
@@ -351,12 +365,17 @@ const ProfileInfo = ({ userData, loading, error }) => {
       {userData?._id && <p className="text-gray-300 mt-1 text-sm">{userData._id}</p>}
       {userData?.email && <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>}
       {userData?.country && <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>}
-      {userData?.Balance !== undefined && (<p className={`mt-1 text-sm font-semibold ${userData.Balance === 0 ? "text-red-500" : "text-green-400"}`}>Balance: ${userData.Balance}</p>)}
+      {userData?.Balance !== undefined && (
+        <p className={`mt-1 text-sm font-semibold ${userData.Balance === 0 ? "text-red-500" : "text-green-400"}`}>
+          Balance Allocated to Bots: ${userData.Balance}
+        </p>
+      )}
     </>
   )
 }
 
-// Bot subscription component
+// ==================== BOT SUBSCRIPTION COMPONENT ====================
+
 const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
   const [subscriptions, setSubscriptions] = useState({})
   const [isBotModalOpen, setIsBotModalOpen] = useState(false)
@@ -526,20 +545,19 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
               type="number"
               value={balance}
               onChange={(e) => {
-                let newValue = Number(e.target.value);
+                let newValue = Number(e.target.value)
 
                 // Ensure the value is at least 100 USDT
                 if (newValue < 100) {
-                  newValue = 100;
+                  newValue = 100
                 }
 
-                setBalance(newValue);
+                setBalance(newValue)
               }}
-              min="100"  // Ensures the input UI also prevents values below 100
+              min="100" // Ensures the input UI also prevents values below 100
               className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Enter balance"
             />
-
 
             <div className="flex justify-end gap-3">
               <button
@@ -587,12 +605,12 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
   )
 }
 
-// Exchange connection form component
+// ==================== EXCHANGE CONNECTION FORM ====================
+
 const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
-  const [selectedExchange, setSelectedExchange] = useState("OKX")
+  const [selectedExchange, setSelectedExchange] = useState("BYBIT")
   const [apiKey, setApiKey] = useState("")
   const [apiSecret, setApiSecret] = useState("")
-  const [phrase, setPhrase] = useState("")
   const [connectionStatus, setConnectionStatus] = useState(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const { showNotification } = useNotification()
@@ -611,13 +629,10 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
     if (userData?.secret_key) {
       setApiSecret(userData.secret_key)
     }
-    if (userData?.secret_phrase) {
-      setPhrase(userData.secret_phrase)
-    }
   }, [userData])
 
   const testConnection = async () => {
-    if (!apiKey || !apiSecret || !phrase) {
+    if (!apiKey || !apiSecret) {
       setConnectionStatus("error")
       showNotification("Please fill in all fields", "error")
       setTimeout(() => setConnectionStatus(null), 3000)
@@ -633,7 +648,6 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
         body: JSON.stringify({
           api_key: apiKey,
           api_secret: apiSecret,
-          passphrase: phrase,
         }),
       })
 
@@ -669,7 +683,6 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
           selectedExchange,
           apiKey,
           apiSecret,
-          phrase,
         }),
       })
 
@@ -690,8 +703,8 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
   }
 
   const deleteConnection = async () => {
-    const token = localStorage.getItem("access_token");
-  
+    const token = localStorage.getItem("access_token")
+
     try {
       const response = await fetch(`${BASE_URL}/exchange/DeleteConnection`, {
         method: "DELETE",
@@ -699,43 +712,39 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-      });
-  
-      const data = await response.json();
+      })
+
+      const data = await response.json()
       if (response.ok) {
         // Clear form fields
-        setApiKey("");
-        setApiSecret("");
-        setPhrase("");
-        setSelectedExchange("OKX");
-  
-        showNotification("Exchange connection deleted successfully!", "success");
-  
+        setApiKey("")
+        setApiSecret("")
+        setSelectedExchange("BYBIT")
+
+        showNotification("Exchange connection deleted successfully!", "success")
+
         // Call the callback to refresh user data
         if (onConnectionUpdated) {
-          onConnectionUpdated();
+          onConnectionUpdated()
         }
       } else {
         // Check if the user needs to unsubscribe from bots first
         if (data.subscribed_bots) {
           showNotification(
-            `Error: You are subscribed to the following bots: ${data.subscribed_bots.join(
-              ", "
-            )}. Unsubscribe first.`,
-            "error"
-          );
+            `Error: You are subscribed to the following bots: ${data.subscribed_bots.join(", ")}. Unsubscribe first.`,
+            "error",
+          )
         } else {
-          showNotification(`Error: ${data.error}`, "error");
+          showNotification(`Error: ${data.error}`, "error")
         }
       }
     } catch (error) {
-      console.error("Error deleting exchange connection:", error);
-      showNotification("Something went wrong!", "error");
+      console.error("Error deleting exchange connection:", error)
+      showNotification("Something went wrong!", "error")
     }
-  
-    setIsDeleteModalOpen(false);
-  };
-  
+
+    setIsDeleteModalOpen(false)
+  }
 
   return (
     <div className="bg-gray-800 rounded-lg p-8 mt-12 relative overflow-hidden min-h-[430px]">
@@ -758,13 +767,12 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
         )}
       </div>
 
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6">
         <ExchangeSelector
           selectedExchange={selectedExchange}
           setSelectedExchange={setSelectedExchange}
           setApiKey={setApiKey}
           setApiSecret={setApiSecret}
-          setPhrase={setPhrase}
           setConnectionStatus={setConnectionStatus}
         />
 
@@ -797,21 +805,6 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
           />
           <p className="text-gray-300 text-sm mt-1">Enter your Secret Key from the exchange.</p>
         </div>
-
-        <div>
-          <label className="block text-gray-200 mb-2" htmlFor="phrase">
-            Secret Phrase
-          </label>
-          <input
-            type="text"
-            id="phrase"
-            value={phrase}
-            onChange={(e) => setPhrase(e.target.value)}
-            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter your Phrase"
-          />
-          <p className="text-gray-300 text-sm mt-1">Enter your security phrase from the exchange.</p>
-        </div>
       </div>
 
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between mt-10">
@@ -838,12 +831,14 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
             <RefreshIcon className="h-5 w-5" />
             <span>Test Connection</span>
           </button>
-          <button
-            onClick={saveConnection}
-            className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg font-semibold transition-transform transform hover:-translate-y-0.5"
-          >
-            Save
-          </button>
+          {!hasExchangeCredentials && (
+            <button
+              onClick={saveConnection}
+              className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg font-semibold transition-transform transform hover:-translate-y-0.5"
+            >
+              Save
+            </button>
+          )}
         </div>
       </div>
 
@@ -878,7 +873,8 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
   )
 }
 
-// Main profile page component
+// ==================== MAIN PROFILE PAGE COMPONENT ====================
+
 const ProfilePage = () => {
   const [userData, setUserData] = useState(null)
   const [loading, setLoading] = useState(true)

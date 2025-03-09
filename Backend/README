@@ -9,4 +9,10 @@ flask run --reload
     "api_secret": "08D5354EEC5B4FFF0AAAD3FEC3A3A559",
     "passphrase": "Ta@1@2@3@4@5"
 }
+=======
+#BYBIT
+api_key = "FVxJssLNFyUgq5OTyt"
+api_secret = "3PstkL6fJ6vkyTOPCPR0jIGOaoeQQdBv6sDl"
+=======
+"password": "Securepassword@1"
 

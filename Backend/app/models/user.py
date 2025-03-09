@@ -15,7 +15,6 @@ class User:
             "Balance": 0,
             "exchange": None,
             "api_key": None,
-            "secret_key": None,
-            "secret_phrase": None
+            "secret_key": None
         })
 

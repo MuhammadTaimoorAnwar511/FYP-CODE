@@ -51,7 +51,6 @@ def signup():
         "exchange": None,
         "api_key": None,
         "secret_key": None,
-        "secret_phrase": None
     }
 
     mongo.db.users.insert_one(user_data)

@@ -9,116 +9,133 @@ from urllib.parse import urljoin
 from flask_cors import CORS
 from app import mongo
 from bson.objectid import ObjectId
-
+import time
+from bson import ObjectId
 exchange_bp = Blueprint('exchange', __name__)
 CORS(exchange_bp) 
 
-class OKXClient:
-    def __init__(self, api_key, api_secret, passphrase):
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.passphrase = passphrase
-        self.base_url = "https://www.okx.com"
-        self.is_demo = True  # Only allow demo trading
+####
+# Create a Blueprint
+BASE_URL = "https://api-demo.bybit.com"
+ENDPOINT = "/v5/account/wallet-balance"
+TIME_ENDPOINT = "/v5/market/time"
 
-    def _get_timestamp(self):
-        return datetime.now(UTC).isoformat(timespec='milliseconds').replace("+00:00", "Z")
-
-    def _sign(self, timestamp, method, request_path, body=''):
-        message = str(timestamp) + method.upper() + request_path + str(body)
-        mac = hmac.new(
-            bytes(self.api_secret, 'utf-8'), 
-            bytes(message, 'utf-8'), 
-            hashlib.sha256
-        )
-        return base64.b64encode(mac.digest()).decode('utf-8')
-
-    def test_connection(self):
-        method = 'GET'
-        request_path = '/api/v5/account/balance'
-        url = urljoin(self.base_url, request_path)
-        
-        timestamp = self._get_timestamp()
-        signature = self._sign(timestamp, method, request_path)
-        
-        headers = {
-            'OK-ACCESS-KEY': self.api_key,
-            'OK-ACCESS-SIGN': signature,
-            'OK-ACCESS-TIMESTAMP': timestamp,
-            'OK-ACCESS-PASSPHRASE': self.passphrase,
-            'Content-Type': 'application/json'
-        }
-        
-        if self.is_demo:
-            headers['x-simulated-trading'] = '1'  # Ensure demo trading is enforced
-        
-        try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
+def get_server_timestamp():
+    """Fetch the correct server timestamp from Bybit to avoid time drift issues."""
+    try:
+        response = requests.get(f"{BASE_URL}{TIME_ENDPOINT}")
+        if response.status_code == 200:
             data = response.json()
-            if data['code'] == '0':
-                return True
-            return False
-        except:
-            return False
+            return int(data["result"]["timeNano"]) // 1_000_000  
+    except Exception as e:
+        print(f"Error fetching server time: {e}")
+    return int(time.time() * 1000)  # Fallback to local time
+
+def get_usdt_balance(api_key, api_secret):
+    """Fetch only USDT wallet balance from Bybit API."""
+    params = {"accountType": "UNIFIED"}
+    
+    timestamp = str(get_server_timestamp())  # Use Bybit's server time
+    recv_window = "10000"  
+
+    query_string = '&'.join(f"{k}={v}" for k, v in sorted(params.items()))
+
+    signature_payload = f"{timestamp}{api_key}{recv_window}{query_string}"
+    signature = hmac.new(
+        api_secret.encode("utf-8"),
+        signature_payload.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    headers = {
+        "X-BAPI-API-KEY": api_key,
+        "X-BAPI-TIMESTAMP": timestamp,
+        "X-BAPI-RECV-WINDOW": recv_window,
+        "X-BAPI-SIGN": signature
+    }
+
+    response = requests.get(f"{BASE_URL}{ENDPOINT}", params=params, headers=headers)
+
+    if response.status_code == 200:
+        data = response.json()
+        if 'result' in data and 'list' in data['result']:
+            for account in data['result']['list']:
+                for coin in account.get('coin', []):
+                    if coin['coin'] == 'USDT':
+                        return float(coin['walletBalance'])  
+    return -1  # Default if USDT balance is not found
 
 @exchange_bp.route('/TestConnection', methods=['POST'])
-def balance():
+def test_connection():
     data = request.get_json()
-    if not data or not all(k in data for k in ('api_key', 'api_secret', 'passphrase')):
-        return jsonify({'error': 'Missing required API credentials'}), 400
-    
-    client = OKXClient(
-        api_key=data['api_key'],
-        api_secret=data['api_secret'],
-        passphrase=data['passphrase']
-    )
-    
-    try:
-        if client.test_connection():
-            return jsonify({'success': True})
-        else:
-            return jsonify({'success': False})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    api_key = data.get("api_key")
+    api_secret = data.get("api_secret")
 
+    if not api_key or not api_secret:
+        return jsonify({"success": False, "error": "API key and secret are required"}), 400
+
+    usdt_balance = get_usdt_balance(api_key, api_secret)
+
+    if usdt_balance == -1:  # Invalid API key or secret
+        return jsonify({"success": False, "error": "Invalid API key or secret"}), 401
+
+    return jsonify({"success": True, "usdt_balance": usdt_balance})
 
 @exchange_bp.route("/SaveConnection", methods=["PUT"])
 @jwt_required()
 def update_exchange():
-    email = get_jwt_identity()  # Extract the email from the JWT token
+    email = get_jwt_identity()  
     user = mongo.db.users.find_one({"email": email})
-    
+
     if not user:
-        return jsonify({"message": "User not found"}), 404
-    
+        return jsonify({"success": False, "message": "User not found"}), 404
+
     data = request.json  # Get JSON data from the request body
-    
-    # Extract API credentials
+
+    # Extract API credentials and selected exchange
     api_key = data.get("apiKey")
     api_secret = data.get("apiSecret")
-    passphrase = data.get("phrase")
+    selected_exchange = data.get("selectedExchange")
 
-    if not all([api_key, api_secret, passphrase]):
-        return jsonify({"message": "Missing required API credentials"}), 400
+    if not selected_exchange:
+        return jsonify({"success": False, "message": "Exchange name is required"}), 400
 
-    # Create client instance and test connection
-    client = OKXClient(api_key, api_secret, passphrase)
-    if not client.test_connection():
-        return jsonify({"message": "API connection test failed"}), 400
+    if not api_key:
+        return jsonify({"success": False, "message": "API key is missing"}), 400
 
-    # If test is successful, save connection
+    if not api_secret:
+        return jsonify({"success": False, "message": "API secret is missing"}), 400
+
+    # Test API credentials
+    usdt_balance = get_usdt_balance(api_key, api_secret)
+
+    if usdt_balance == -1:
+        return jsonify({
+            "success": False,
+            "message": "Invalid API key or secret. Please check your credentials and try again."
+        }), 401
+
+    if usdt_balance == 0:
+        return jsonify({
+            "success": False,
+            "message": "Valid API credentials, but your USDT balance is zero."
+        }), 200
+
+    # Update user data in MongoDB
     update_data = {
-        "exchange": data.get("selectedExchange"),
+        "exchange": selected_exchange,
         "api_key": api_key,
-        "secret_key": api_secret,
-        "secret_phrase": passphrase,
+        "secret_key": api_secret
     }
-    
     mongo.db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": update_data})
-    
-    return jsonify({"message": "Exchange details updated successfully"}), 200
 
+    return jsonify({
+        "success": True,
+        "message": f"Exchange '{selected_exchange}' connected successfully!",
+        "usdt_balance": usdt_balance
+    })
+
+####
 @exchange_bp.route('/DeleteConnection', methods=['DELETE'])
 @jwt_required()
 def DeleteConnection():
@@ -130,23 +147,24 @@ def DeleteConnection():
         if not user:
             return jsonify({"message": "User not found"}), 404
         
+        user_id_str = str(user["_id"])  # Convert ObjectId to string to match `subscriptions` data
+
         # Check if the user is subscribed to any bot
-        active_subscriptions = list(mongo.db.subscriptions.find({"user_id": user["_id"]}))
+        active_subscriptions = list(mongo.db.subscriptions.find({"user_id": user_id_str}))
         if active_subscriptions:
             subscribed_bots = [sub["bot_name"] for sub in active_subscriptions]
             return jsonify({
-                "error": "Unsubscribe bots first.",
+                "error": "Unsubscribe from the following bots first.",
                 "subscribed_bots": subscribed_bots
             }), 400
 
         # Update the user’s exchange connection fields to null
-        update_result = mongo.db.users.update_one(
+        mongo.db.users.update_one(
             {"_id": user["_id"]},
             {"$set": {
                 "exchange": None,
                 "api_key": None,
                 "secret_key": None,
-                "secret_phrase": None
             }}
         )
 

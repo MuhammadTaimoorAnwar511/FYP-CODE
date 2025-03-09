@@ -22,7 +22,8 @@ def getbotdetail():
         "Winning Trades": 1,
         "Max Losing Streak": 1,
         "Max Winning Streak": 1,
-        "Win Rate (%)": 1
+        "Win Rate (%)": 1,
+        "ROI (%)":1
     })  
 
     if not data:
