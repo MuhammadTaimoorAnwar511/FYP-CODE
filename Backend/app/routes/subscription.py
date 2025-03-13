@@ -20,7 +20,6 @@ BASE_URL = "https://api-demo.bybit.com"
 ENDPOINT = "/v5/account/wallet-balance"
 TIME_ENDPOINT = "/v5/market/time"
 
-
 def get_server_timestamp():
     """Fetch the correct server timestamp from Bybit."""
     try:
@@ -31,7 +30,6 @@ def get_server_timestamp():
     except Exception as e:
         print(f"Error fetching server time: {e}")
     return int(time.time() * 1000)  # Fallback to local time
-
 
 def get_usdt_balance(api_key, api_secret):
     """Fetch only USDT wallet balance from Bybit API."""
@@ -57,7 +55,6 @@ def get_usdt_balance(api_key, api_secret):
                         return float(coin['walletBalance'])  
     return -1
 
-
 @subscription_bp.route("/test_connection", methods=["POST"])
 def test_connection():
     """Validate API key and fetch USDT balance."""
@@ -71,35 +68,48 @@ def test_connection():
         return jsonify({"success": False, "error": "Invalid API key or secret"}), 401
     return jsonify({"success": True, "usdt_balance": usdt_balance})
 
-
 @subscription_bp.route("/create", methods=["POST"])
 def create_subscription():
-    """Create a new subscription after verifying API credentials."""
+    """Create a new subscription after verifying API credentials and checking balance."""
     data = request.get_json()
     bot_name = data.get("bot_name")
     user_id = data.get("user_id")
     balance_allocated = data.get("balance_allocated")
-    
-    if not bot_name or not user_id or not balance_allocated:
+
+    if not bot_name or not user_id or balance_allocated is None:
         return jsonify({"error": "Missing required fields"}), 400
-    
+
     user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         return jsonify({"error": "User not found"}), 404
-    
+
     api_key = user.get("api_key")
     api_secret = user.get("secret_key")
-    
+
     if not all([user.get("exchange"), api_key, api_secret]):
         return jsonify({"error": "User must have exchange, api_key, and secret_key set"}), 400
-    
-    usdt_balance = get_usdt_balance(api_key, api_secret)
+
+    usdt_balance = get_usdt_balance(api_key, api_secret)  # Fetch actual balance from Bybit API
     if usdt_balance == -1:
         return jsonify({"error": "Invalid API key or secret"}), 401
+
+    bots_balance = user.get("Bots_Balance", 0)  # Current allocated balance
+    new_balance = bots_balance + balance_allocated  # Updated bot balance
+
+    # **Check if balance allocation is allowed**
+    if new_balance > usdt_balance:
+        additional_required = new_balance - usdt_balance
+        return jsonify({
+            "error": f"You need additional {additional_required:.2f} USDT to subscribe to {bot_name} "
+                     f"because you already allocated {bots_balance:.2f} USDT to bots."
+        }), 400
+
+    # **Proceed with subscription creation**
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Bots_Balance": new_balance}})
     
-    new_balance = user.get("Balance", 0) + balance_allocated
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Balance": new_balance}})
-    
+    new_user_balance = user.get("User_Balance", 0) + balance_allocated
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"User_Balance": new_user_balance}})
+
     symbol = bot_name.replace("_", "/")
     subscription_id = mongo.db.subscriptions.insert_one({
         "bot_name": bot_name,
@@ -107,23 +117,21 @@ def create_subscription():
         "user_id": user_id,
         "balance_allocated": balance_allocated
     }).inserted_id
-    
+
     return jsonify({
-        "message": f"{symbol} Subscription created successfully, USDT balance: {usdt_balance}",
+        "message": f"{symbol} Subscription created successfully, USDT balance: {usdt_balance:.2f}",
         "subscription_id": str(subscription_id),
         "symbol": symbol,
-        "usdt_balance": usdt_balance
+        "usdt_balance": usdt_balance,
+        "Bots_Balance": new_balance,
+        "User_Balance": new_user_balance
     }), 201
 
 
 
-
-
-
-###
-
 # @subscription_bp.route("/create", methods=["POST"])
 # def create_subscription():
+#     """Create a new subscription after verifying API credentials."""
 #     data = request.get_json()
 #     bot_name = data.get("bot_name")
 #     user_id = data.get("user_id")
@@ -136,17 +144,25 @@ def create_subscription():
 #     if not user:
 #         return jsonify({"error": "User not found"}), 404
     
-#     # Check if required fields are present and not null
-#     if not all([user.get("exchange"), user.get("api_key"), user.get("secret_key")]):
+#     api_key = user.get("api_key")
+#     api_secret = user.get("secret_key")
+    
+#     if not all([user.get("exchange"), api_key, api_secret]):
 #         return jsonify({"error": "User must have exchange, api_key, and secret_key set"}), 400
     
-#     # Update user balance
-#     new_balance = user.get("Balance", 0) + balance_allocated
-#     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Balance": new_balance}})
+#     usdt_balance = get_usdt_balance(api_key, api_secret)
+#     if usdt_balance == -1:
+#         return jsonify({"error": "Invalid API key or secret"}), 401
     
-#         # Generate symbol by replacing "_" with "/"
-#     symbol = bot_name.replace("_", "/")
+#     new_balance = user.get("Bots_Balance", 0) + balance_allocated
+#     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Bots_Balance": new_balance}})
+    
+#     # Update User_Balance similarly
+#     new_user_balance = user.get("User_Balance", 0) + balance_allocated  
+#     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"User_Balance": new_user_balance}})
 
+
+#     symbol = bot_name.replace("_", "/")
 #     subscription_id = mongo.db.subscriptions.insert_one({
 #         "bot_name": bot_name,
 #         "symbol": symbol,
@@ -154,7 +170,12 @@ def create_subscription():
 #         "balance_allocated": balance_allocated
 #     }).inserted_id
     
-#     return jsonify({"message": "Subscription created successfully", "subscription_id": str(subscription_id)}), 201
+#     return jsonify({
+#         "message": f"{symbol} Subscription created successfully, USDT balance: {usdt_balance}",
+#         "subscription_id": str(subscription_id),
+#         "symbol": symbol,
+#         "usdt_balance": usdt_balance
+#     }), 201
 
 # Check if user is subscribed to a specific bot
 @subscription_bp.route("/status", methods=["POST"])
@@ -187,8 +208,12 @@ def delete_subscription(user_id, bot_name):
         return jsonify({"error": "User does not exist"}), 404
 
     # Deduct balance from user
-    new_balance = max(user.get("Balance", 0) - balance_allocated, 0)  # Ensure balance never goes negative
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Balance": new_balance}})
+    new_balance = max(user.get("Bots_Balance", 0) - balance_allocated, 0)  
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Bots_Balance": new_balance}})
+
+
+    new_user_balance = max(user.get("User_Balance", 0) - balance_allocated, 0)  
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"User_Balance": new_user_balance}})
 
     # Delete the subscription
     result = mongo.db.subscriptions.delete_one({"user_id": user_id, "bot_name": bot_name})

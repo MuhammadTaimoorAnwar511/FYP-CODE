@@ -12,7 +12,8 @@ class User:
             "email": email,
             "country": country,
             "password": hashed_password,
-            "Balance": 0,
+            "Bots_Balance": 0,
+            "User_Balance": 0,
             "exchange": None,
             "api_key": None,
             "secret_key": None
