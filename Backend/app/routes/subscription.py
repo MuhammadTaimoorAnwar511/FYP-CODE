@@ -39,8 +39,12 @@ def create_subscription():
     new_balance = user.get("Balance", 0) + balance_allocated
     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Balance": new_balance}})
     
+        # Generate symbol by replacing "_" with "/"
+    symbol = bot_name.replace("_", "/")
+
     subscription_id = mongo.db.subscriptions.insert_one({
         "bot_name": bot_name,
+        "symbol": symbol,
         "user_id": user_id,
         "balance_allocated": balance_allocated
     }).inserted_id
