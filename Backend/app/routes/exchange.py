@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import requests
@@ -11,14 +13,17 @@ from app import mongo
 from bson.objectid import ObjectId
 import time
 from bson import ObjectId
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Get the values of Bybit API details from the .env file
+BASE_URL = os.getenv("BASE_URL")
+ENDPOINT = os.getenv("ENDPOINT")
+TIME_ENDPOINT = os.getenv("TIME_ENDPOINT")
+
 exchange_bp = Blueprint('exchange', __name__)
 CORS(exchange_bp) 
-
-####
-# Create a Blueprint
-BASE_URL = "https://api-demo.bybit.com"
-ENDPOINT = "/v5/account/wallet-balance"
-TIME_ENDPOINT = "/v5/market/time"
 
 def get_server_timestamp():
     """Fetch the correct server timestamp from Bybit to avoid time drift issues."""
@@ -135,7 +140,6 @@ def update_exchange():
         "usdt_balance": usdt_balance
     })
 
-####
 @exchange_bp.route('/DeleteConnection', methods=['DELETE'])
 @jwt_required()
 def DeleteConnection():
