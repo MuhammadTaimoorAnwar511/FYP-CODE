@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
 from app.models.subscription import Subscription
 from bson import ObjectId
@@ -12,13 +14,17 @@ import hashlib
 import base64
 import time
 
+# Load environment variables from .env file
+load_dotenv()
+
+# Get the values of Bybit API details from the .env file
+BASE_URL = os.getenv("BASE_URL")
+ENDPOINT = os.getenv("ENDPOINT")
+TIME_ENDPOINT = os.getenv("TIME_ENDPOINT")
+
 subscription_bp = Blueprint("subscription", __name__)
 CORS(subscription_bp)
 
-# Bybit API details
-BASE_URL = "https://api-demo.bybit.com"
-ENDPOINT = "/v5/account/wallet-balance"
-TIME_ENDPOINT = "/v5/market/time"
 
 def get_server_timestamp():
     """Fetch the correct server timestamp from Bybit."""
@@ -127,57 +133,6 @@ def create_subscription():
         "User_Balance": new_user_balance
     }), 201
 
-
-
-# @subscription_bp.route("/create", methods=["POST"])
-# def create_subscription():
-#     """Create a new subscription after verifying API credentials."""
-#     data = request.get_json()
-#     bot_name = data.get("bot_name")
-#     user_id = data.get("user_id")
-#     balance_allocated = data.get("balance_allocated")
-    
-#     if not bot_name or not user_id or not balance_allocated:
-#         return jsonify({"error": "Missing required fields"}), 400
-    
-#     user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
-#     if not user:
-#         return jsonify({"error": "User not found"}), 404
-    
-#     api_key = user.get("api_key")
-#     api_secret = user.get("secret_key")
-    
-#     if not all([user.get("exchange"), api_key, api_secret]):
-#         return jsonify({"error": "User must have exchange, api_key, and secret_key set"}), 400
-    
-#     usdt_balance = get_usdt_balance(api_key, api_secret)
-#     if usdt_balance == -1:
-#         return jsonify({"error": "Invalid API key or secret"}), 401
-    
-#     new_balance = user.get("Bots_Balance", 0) + balance_allocated
-#     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Bots_Balance": new_balance}})
-    
-#     # Update User_Balance similarly
-#     new_user_balance = user.get("User_Balance", 0) + balance_allocated  
-#     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"User_Balance": new_user_balance}})
-
-
-#     symbol = bot_name.replace("_", "/")
-#     subscription_id = mongo.db.subscriptions.insert_one({
-#         "bot_name": bot_name,
-#         "symbol": symbol,
-#         "user_id": user_id,
-#         "balance_allocated": balance_allocated
-#     }).inserted_id
-    
-#     return jsonify({
-#         "message": f"{symbol} Subscription created successfully, USDT balance: {usdt_balance}",
-#         "subscription_id": str(subscription_id),
-#         "symbol": symbol,
-#         "usdt_balance": usdt_balance
-#     }), 201
-
-# Check if user is subscribed to a specific bot
 @subscription_bp.route("/status", methods=["POST"])
 def check_subscription_status():
     data = request.get_json() 
@@ -191,7 +146,7 @@ def check_subscription_status():
     subscription = mongo.db.subscriptions.find_one({"user_id": user_id, "bot_name": bot_name})
 
     return jsonify({"subscribed": bool(subscription)}), 200
-###
+
 @subscription_bp.route("/delete/<user_id>/<bot_name>", methods=["DELETE"])
 def delete_subscription(user_id, bot_name):
     # Query the subscription using user_id as a string
@@ -218,4 +173,5 @@ def delete_subscription(user_id, bot_name):
     # Delete the subscription
     result = mongo.db.subscriptions.delete_one({"user_id": user_id, "bot_name": bot_name})
 
-    return jsonify({"message": "Subscription deleted"}), 200
+    return jsonify({"message": f"{bot_name} Bot Subscription deleted"}), 200
+
