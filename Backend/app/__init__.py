@@ -29,6 +29,8 @@ from app.routes.subscription import subscription_bp
 app.register_blueprint(subscription_bp, url_prefix="/subscription") 
 from app.routes.botdetail import botdetail_bp
 app.register_blueprint(botdetail_bp, url_prefix="/bot") 
+from app.routes.trades import trades_bp
+app.register_blueprint(trades_bp, url_prefix="/trades")
 
 @app.route("/")
 def home():
