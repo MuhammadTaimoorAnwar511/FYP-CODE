@@ -125,10 +125,6 @@ def format_quantity(qty: float, step: float) -> str:
         return formatted.rstrip('0').rstrip('.')
     return formatted
 
-# --------------------------------------------------------------------------------
-# Functions replicating the core logic from the original class, but not using a class.
-# --------------------------------------------------------------------------------
-
 def validate_direction(direction: str) -> None:
     """
     Validate direction to be either 'long' or 'short'. Raise ValueError otherwise.

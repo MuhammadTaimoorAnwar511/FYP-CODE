@@ -1,23 +1,18 @@
 import os
-import time
-import base64
-import hashlib
-import hmac
-from datetime import datetime, UTC
-from urllib.parse import urljoin
-
 from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import jwt_required, get_jwt_identity
-import requests
 
 from pymongo import MongoClient
 from bson import ObjectId
 from bson.objectid import ObjectId
 
-from app import mongo
-
+import requests
+import time
+import hmac
+import hashlib
+import json
+import math
 # Load environment variables from .env file
 load_dotenv()
 
