@@ -381,8 +381,9 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
   const [isBotModalOpen, setIsBotModalOpen] = useState(false)
   const [isUnsubscribeModalOpen, setIsUnsubscribeModalOpen] = useState(false)
   const [selectedBot, setSelectedBot] = useState("")
-  const [balance, setBalance] = useState("100")
+  const [balance, setBalance] = useState(100)
   const { showNotification } = useNotification()
+  const [isDisabled, setIsDisabled] = useState(false);
 
   const bots = [
     {
@@ -458,7 +459,8 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
   }
 
   const handleSubscribe = async () => {
-    closeModal();
+    setIsDisabled(true);
+    
     const response = await fetch(`${BASE_URL}/subscription/create`, {
       method: "POST",
       headers: {
@@ -469,24 +471,30 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
         user_id: userData?._id,
         balance_allocated: balance,
       }),
-    })
-
-    const data = await response.json()
-
+    });
+  
+    const data = await response.json();
+  
     if (data.error) {
-      showNotification(data.error, "error")
+      showNotification(data.error, "error");
     } else if (data.message) {
-      setSubscriptions((prev) => ({ ...prev, [selectedBot]: true }))
-      showNotification(data.message, "success")
-
+      setSubscriptions((prev) => ({ ...prev, [selectedBot]: true }));
+      showNotification(data.message, "success");
+  
       // Call the callback to refresh data
       if (onSubscriptionUpdated) {
-        onSubscriptionUpdated()
+        onSubscriptionUpdated();
       }
     }
-
-    closeModal()
-  }
+  
+    closeModal();
+  
+    // Re-enable the button after 10 seconds
+    setTimeout(() => {
+      setIsDisabled(false);
+    }, 10000);
+  };
+  
 
   const handleUnsubscribe = async () => {
     if (!userData?._id || !selectedBot) {
@@ -543,24 +551,20 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
             <p className="text-gray-300 text-sm mb-4">Enter the amount you'd like to use for this bot.</p>
 
             <input
-              type="number"
-              value={balance}
-              onChange={(e) => {
-                // Just set the value as-is during typing
-                setBalance(e.target.value)
-              }}
-              onBlur={(e) => {
-                let newValue = Number(e.target.value);
-                if (newValue < 100) {
-                  newValue = 100;
-                }
-                setBalance(newValue);
-              }}
-              min="100"
-              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="Enter balance"
+                type="number"
+                value={balance}
+                onChange={(e) => setBalance(Number(e.target.value))}
+                onBlur={(e) => {
+                  let newValue = Number(e.target.value);
+                  if (newValue < 100) {
+                    newValue = 100;
+                  }
+                  setBalance(newValue);
+                }}
+                min="100"
+                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Enter balance"
             />
-
 
             <div className="flex justify-end gap-3">
               <button
@@ -571,6 +575,7 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
               </button>
               <button
                 onClick={handleSubscribe}
+                disabled={isDisabled}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition"
               >
                 Confirm
