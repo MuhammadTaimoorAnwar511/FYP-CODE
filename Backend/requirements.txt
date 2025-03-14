@@ -7,3 +7,4 @@ flask-pymongo
 python-dotenv
 flask-cors
 ccxt
+python-dotenv
