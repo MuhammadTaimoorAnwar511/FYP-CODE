@@ -13,6 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from pymongo import MongoClient
 from flask import Flask
 from dotenv import load_dotenv
+import requests
 
 # ----- LOAD ENV VARIABLES -----
 load_dotenv() 
@@ -20,6 +21,9 @@ load_dotenv()
 PORT = int(os.getenv("PORT"))
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
+# Retrieve backend host and port; provide defaults if they are not set
+backend_uri = os.getenv("BACKEND_URI")
+backend_port = os.getenv("BACKEND_PORT")
 
 # ----- LOGGER SETUP -----
 logging.basicConfig(level=logging.INFO)
@@ -69,7 +73,6 @@ class StrategyConfig:
         self.collection_name = f"{SYMBOL.replace('/', '_')}"
         #self.collection_name = f"{SYMBOL.replace('/', '_')}_{TIMEFRAME}"
 
-
 # ---------- MARKET DATA FETCHER ----------
 class MarketDataFetcher:
     @staticmethod
@@ -89,7 +92,7 @@ class MarketDataFetcher:
         """
         Sleeps until the next candle is (almost) closed.
         """
-        reducedelay = 56
+        reducedelay = 54
         now_utc = datetime.now(timezone.utc)
         minute = now_utc.minute
         second = now_utc.second
@@ -475,6 +478,55 @@ class AIModel:
         df.loc[df.index[-1], 'prediction'] = final_pred
         return df
 
+# ---------- Api Calls  ----------
+
+def user_trade_open(trade_data):
+    """
+    Sends selected trade data to the backend when a trade is opened.
+    """
+    # Construct the endpoints using the environment variables
+    open_trade_endpoint = f"http://{backend_uri}:{backend_port}/trades/open_trade"
+
+    # Extract only the required fields and convert to standard Python types
+    payload = {
+        "symbol": str(trade_data["symbol"]),
+        "direction": str(trade_data["direction"]),
+        "stop_loss": float(trade_data["stop_loss"]),
+        "take_profit": float(trade_data["take_profit"]),
+        "investment_per_trade": float(trade_data["investment_per_trade"]),
+        "amount_multiplier": float(trade_data["amount_multiplier"]), 
+    }
+
+    # Send POST request with JSON body
+    response = requests.post(open_trade_endpoint, json=payload)
+
+    # Handle the response
+    if response.status_code == 200:
+        data = response.json()
+        print(data["message"])
+        print("########################################################################")
+        print(data["trades"])
+        print("########################################################################")
+        
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+
+
+def user_trade_close(trade_data):
+    """
+    Dummy function to simulate actions when a trade is closed.
+    In a real system, you might notify a user, update a UI, or log to an external system.
+    """
+    print("########################################################################")
+    print(trade_data)
+    print("########################################################################")
+    # Construct the endpoints using the environment variables
+    close_trade_endpoint = f"http://{backend_uri}:{backend_port}/trades/close_trade"
+    # Call the endpoint without printing
+    response = requests.post(close_trade_endpoint)
+    data = response.json()  
+    print(data["message"])
+
 # ---------- TRADING SIMULATION ----------
 class TradingSimulation:
     def __init__(self, config: StrategyConfig):
@@ -520,19 +572,19 @@ class TradingSimulation:
         price_diff_percent = abs((exit_price - entry_price) / entry_price) * 100
         if price_diff_percent == 0:
             return 0, 0
-        amout_multiplier = 100 / price_diff_percent
-        risk_amount = (self.current_risk_percent / 100.0) * self.initial_balance * amout_multiplier
-        return risk_amount, amout_multiplier
+        amount_multiplier = 100 / price_diff_percent
+        risk_amount = (self.current_risk_percent / 100.0) * self.initial_balance * amount_multiplier
+        return risk_amount, amount_multiplier
 
     def calculate_quantity(self, entry_price, exit_price):
-        risk_amount, amout_multiplier = self.calculate_risk_amount(entry_price, exit_price)
+        risk_amount, amount_multiplier = self.calculate_risk_amount(entry_price, exit_price)
         if entry_price == 0:
-            return 0, amout_multiplier
+            return 0, amount_multiplier
         quantity = risk_amount / entry_price
-        return quantity, amout_multiplier
+        return quantity, amount_multiplier
 
     def calculate_pnl(self, entry_price, exit_price, direction: str):
-        quantity, amout_multiplier = self.calculate_quantity(entry_price, exit_price)
+        quantity, amount_multiplier = self.calculate_quantity(entry_price, exit_price)
         if direction.upper() == "LONG":
             profit = (exit_price - entry_price) * quantity
         else:
@@ -541,7 +593,7 @@ class TradingSimulation:
         fee_exit  = quantity * exit_price  * self.config.taker_fee_rate
         total_fee = fee_entry + fee_exit
         net_pnl = profit - total_fee
-        return profit, net_pnl, total_fee, amout_multiplier
+        return profit, net_pnl, total_fee, amount_multiplier
 
     def get_open_trade(self):
         return self.trades_collection.find_one({"status": "OPEN"})
@@ -560,7 +612,7 @@ class TradingSimulation:
             take_profit = entry_price - (self.config.reward_atr_multiplier * atr)
             approximate_exit_for_risk = stop_loss
 
-        risk_amount, amout_multiplier = self.calculate_risk_amount(entry_price, approximate_exit_for_risk)
+        risk_amount, amount_multiplier = self.calculate_risk_amount(entry_price, approximate_exit_for_risk)
 
         trade_data = {
             "symbol": self.symbol,
@@ -573,7 +625,7 @@ class TradingSimulation:
             "exit_time": None,
             "exit_price": None,
             "investment_per_trade": self.current_risk_percent,
-            "amout_multiplier": amout_multiplier,
+            "amount_multiplier": amount_multiplier,
             "total_fees": 0,
             "pnl": 0,
             "net_pnl": 0
@@ -584,6 +636,9 @@ class TradingSimulation:
             f"Opened {direction_str} trade @ {entry_price:.2f} | SL={stop_loss:.2f}, TP={take_profit:.2f}, risk%={self.current_risk_percent}"
         )
 
+        # Call the dummy user trade open function
+        user_trade_open(trade_data)
+
     def close_trade(self, open_trade, reason: str, row, forced_exit_price=None):
         if forced_exit_price is not None:
             exit_price = forced_exit_price
@@ -592,7 +647,7 @@ class TradingSimulation:
 
         direction = open_trade["direction"]
         entry_price = open_trade["entry_price"]
-        profit, net_pnl, total_fee, final_amout_multiplier = self.calculate_pnl(entry_price, exit_price, direction)
+        profit, net_pnl, total_fee, final_amount_multiplier = self.calculate_pnl(entry_price, exit_price, direction)
 
         update_data = {
             "exit_time": row["timestamp"],
@@ -601,7 +656,7 @@ class TradingSimulation:
             "pnl": profit,
             "net_pnl": net_pnl,
             "total_fees": total_fee,
-            "amout_multiplier": final_amout_multiplier
+            "amount_multiplier": final_amount_multiplier
         }
         self.trades_collection.update_one({"_id": open_trade["_id"]}, {"$set": update_data})
 
@@ -609,6 +664,8 @@ class TradingSimulation:
             f"Closed trade (id={open_trade['_id']}) with status={reason} @ {exit_price:.2f}. PNL={profit:.2f}, NetPNL={net_pnl:.2f}, Fees={total_fee:.2f}"
         )
 
+        # Call the dummy user trade close function
+        user_trade_close(update_data)
         self.update_investment_per_trade(reason)
         trade_analysis = TradeAnalysys(self.db, self.config)
         trade_analysis.analyze_and_store()
