@@ -15,4 +15,5 @@ api_key = "FVxJssLNFyUgq5OTyt"
 api_secret = "3PstkL6fJ6vkyTOPCPR0jIGOaoeQQdBv6sDl"
 =======
 "password": "Securepassword@1"
-
+#bot.py 
+self.mongo_uri="mongodb+srv://proCodingTech:VMYg1AYhLXaGHADT@cluster0.ranzqwd.mongodb.net/"
