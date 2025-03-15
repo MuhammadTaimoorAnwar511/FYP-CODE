@@ -512,20 +512,27 @@ def user_trade_open(trade_data):
         print(f"Error: {response.status_code}, {response.text}")
 
 
-def user_trade_close(trade_data):
-    """
-    Dummy function to simulate actions when a trade is closed.
-    In a real system, you might notify a user, update a UI, or log to an external system.
-    """
+def user_trade_close(symbol, direction,reason):
     print("########################################################################")
-    print(trade_data)
+    print(symbol, "->", direction)
     print("########################################################################")
-    # Construct the endpoints using the environment variables
+    # Construct the endpoint using the environment variables
     close_trade_endpoint = f"http://{backend_uri}:{backend_port}/closetrades/close_trade"
-    # Call the endpoint without printing
-    response = requests.post(close_trade_endpoint)
-    data = response.json()  
+    
+    # Prepare the payload with symbol and direction
+    payload = {
+        "symbol": symbol,
+        "direction": direction,
+        "reason": reason
+    }
+    
+    # Send the POST request with JSON data
+    response = requests.post(close_trade_endpoint, json=payload)
+    data = response.json()
+    
     print(data["message"])
+    print("########################################################################")
+
 
 # ---------- TRADING SIMULATION ----------
 class TradingSimulation:
@@ -644,7 +651,7 @@ class TradingSimulation:
             exit_price = forced_exit_price
         else:
             exit_price = row["close"]
-
+        symbol=open_trade["symbol"]
         direction = open_trade["direction"]
         entry_price = open_trade["entry_price"]
         profit, net_pnl, total_fee, final_amount_multiplier = self.calculate_pnl(entry_price, exit_price, direction)
@@ -661,11 +668,11 @@ class TradingSimulation:
         self.trades_collection.update_one({"_id": open_trade["_id"]}, {"$set": update_data})
 
         logger.info(
-            f"Closed trade (id={open_trade['_id']}) with status={reason} @ {exit_price:.2f}. PNL={profit:.2f}, NetPNL={net_pnl:.2f}, Fees={total_fee:.2f}"
+            f"Closed trade OF {symbol} -> {direction}  with status={reason} @ {exit_price:.2f}. PNL={profit:.2f}, NetPNL={net_pnl:.2f}, Fees={total_fee:.2f}"
         )
 
         # Call the dummy user trade close function
-        #user_trade_close(update_data)
+        user_trade_close(symbol,direction,reason)
         self.update_investment_per_trade(reason)
         trade_analysis = TradeAnalysys(self.db, self.config)
         trade_analysis.analyze_and_store()
