@@ -4,6 +4,7 @@ import hmac
 import hashlib
 import json
 import math
+from datetime import datetime, timezone
 
 # --------------------------------------------------------------------------------
 # Utility functions (These remain exactly the same in logic as the original code).
@@ -246,6 +247,63 @@ def create_market_order_action(
     print("Order Response:", response.json())
     return response
 
+def generate_signature(api_key, api_secret, params, timestamp, recv_window):
+    param_str = f'{timestamp}{api_key}{recv_window}{params}'
+    return hmac.new(api_secret.encode('utf-8'), param_str.encode('utf-8'), hashlib.sha256).hexdigest()
+
+def get_position_info(symbol, api_key, api_secret, base_url):
+    endpoint = '/v5/position/list'
+    params = {
+        'category': "linear",
+        'symbol': symbol
+    }
+    query_string = '&'.join([f'{key}={value}' for key, value in params.items()])
+    timestamp = str(int(time.time() * 1000))
+    recv_window = '5000'
+    signature = generate_signature(api_key, api_secret, query_string, timestamp, recv_window)
+    
+    headers = {
+        'X-BAPI-API-KEY': api_key,
+        'X-BAPI-SIGN': signature,
+        'X-BAPI-TIMESTAMP': timestamp,
+        'X-BAPI-RECV-WINDOW': recv_window,
+        'Content-Type': 'application/json'
+    }
+    
+    response = requests.get(f'{base_url}{endpoint}?{query_string}', headers=headers)
+    return response.json()
+
+def process_position_data(position_data):
+    """
+    Process and display position data.
+    """
+    if position_data['retCode'] == 0:
+        positions = position_data['result']['list']
+        if positions:
+            for pos in positions:
+                symbol = pos['symbol']
+                direction = 'LONG' if pos['side'] == 'Buy' else 'SHORT'
+                entry_time = datetime.fromtimestamp(int(pos['createdTime']) / 1000, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                entry_price = float(pos['avgPrice'])
+                stop_loss = float(pos['stopLoss']) if pos['stopLoss'] else 'Not Set'
+                take_profit = float(pos['takeProfit']) if pos['takeProfit'] else 'Not Set'
+                leverage = pos['leverage']
+                initial_margin = float(pos['positionIM'])
+                
+                print(f"Symbol: {symbol}")
+                print(f"Direction: {direction}")
+                print(f"Entry Time: {entry_time}")
+                print(f"Entry Price: {entry_price}")
+                print(f"Stop Loss: {stop_loss}")
+                print(f"Take Profit: {take_profit}")
+                print(f"Leverage: {leverage}")
+                print(f"Initial Margin: {initial_margin}")
+                print('-' * 30)
+        else:
+            print('No positions found.')
+    else:
+        print(f"Error fetching position information: {position_data['retMsg']}")
+
 # --------------------------------------------------------------------------------
 # Main script usage example (same logic flow, no class usage, but uses the 
 # exchange's maximum offered leverage by default).
@@ -291,6 +349,10 @@ def main():
         usdt_amount=usdt_amount,
         position_idx=0
     )
+    
+    # Fetch and process position information
+    position_data = get_position_info(symbol, api_key, api_secret, base_url)
+    process_position_data(position_data)
 
 if __name__ == "__main__":
     main()

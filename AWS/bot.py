@@ -503,10 +503,10 @@ def user_trade_open(trade_data):
     # Handle the response
     if response.status_code == 200:
         data = response.json()
+        print("########################################################################")
         print(data["message"])
         print("########################################################################")
-        print(data["trades"])
-        print("########################################################################")
+        
         
     else:
         print(f"Error: {response.status_code}, {response.text}")
@@ -665,7 +665,7 @@ class TradingSimulation:
         )
 
         # Call the dummy user trade close function
-        user_trade_close(update_data)
+        #user_trade_close(update_data)
         self.update_investment_per_trade(reason)
         trade_analysis = TradeAnalysys(self.db, self.config)
         trade_analysis.analyze_and_store()
