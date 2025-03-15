@@ -29,9 +29,10 @@ from app.routes.subscription import subscription_bp
 app.register_blueprint(subscription_bp, url_prefix="/subscription") 
 from app.routes.botdetail import botdetail_bp
 app.register_blueprint(botdetail_bp, url_prefix="/bot") 
-from app.routes.trades import trades_bp
-app.register_blueprint(trades_bp, url_prefix="/trades")
-
+from app.routes.opentrades import opentrades_bp
+app.register_blueprint(opentrades_bp, url_prefix="/opentrades")
+from app.routes.closetrades import closetrades_bp
+app.register_blueprint(closetrades_bp, url_prefix="/closetrades")
 @app.route("/")
 def home():
     return {"message": "Flask Backend is Running!"}

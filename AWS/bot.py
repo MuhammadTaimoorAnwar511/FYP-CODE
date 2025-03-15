@@ -485,7 +485,7 @@ def user_trade_open(trade_data):
     Sends selected trade data to the backend when a trade is opened.
     """
     # Construct the endpoints using the environment variables
-    open_trade_endpoint = f"http://{backend_uri}:{backend_port}/trades/open_trade"
+    open_trade_endpoint = f"http://{backend_uri}:{backend_port}/opentrades/open_trade"
 
     # Extract only the required fields and convert to standard Python types
     payload = {
@@ -521,7 +521,7 @@ def user_trade_close(trade_data):
     print(trade_data)
     print("########################################################################")
     # Construct the endpoints using the environment variables
-    close_trade_endpoint = f"http://{backend_uri}:{backend_port}/trades/close_trade"
+    close_trade_endpoint = f"http://{backend_uri}:{backend_port}/closetrades/close_trade"
     # Call the endpoint without printing
     response = requests.post(close_trade_endpoint)
     data = response.json()  

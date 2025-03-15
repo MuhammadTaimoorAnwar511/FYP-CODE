@@ -30,8 +30,8 @@ subscriptions_collection = db['subscriptions']
 users_collection = db['users']
 
 # Flask Blueprint
-trades_bp = Blueprint('trades', __name__)
-CORS(trades_bp)
+opentrades_bp = Blueprint('opentrades', __name__)
+CORS(opentrades_bp)
 
 # -------------------- Utility Functions --------------------
 def get_server_timestamp(base_url: str) -> int:
@@ -185,7 +185,7 @@ def build_trade_info(trade_data, sub, user):
     }
 
 # -------------------- Routes --------------------
-@trades_bp.route('/open_trade', methods=['POST'])
+@opentrades_bp.route('/open_trade', methods=['POST'])
 def open_trade():
     trade_data = parse_trade_data(request)
     if not trade_data.get("symbol"):
@@ -243,6 +243,3 @@ def open_trade():
             results.append({"user_id": user_id, "status": "failed", "error": str(e)})
     return jsonify({"message": f"Processed {len(results)} user(s)", "results": results}), 200
 
-@trades_bp.route('/close_trade', methods=['POST'])
-def close_trade():
-    return jsonify({"message": "User trade close successfully"}), 200
