@@ -503,9 +503,10 @@ def user_trade_open(trade_data):
     # Handle the response
     if response.status_code == 200:
         data = response.json()
-        print("########################################################################")
+
+        print("####################")
         print(data["message"])
-        print("########################################################################")
+        print("####################")
         
         
     else:
@@ -513,9 +514,6 @@ def user_trade_open(trade_data):
 
 
 def user_trade_close(symbol, direction,reason):
-    print("########################################################################")
-    print(symbol, "->", direction)
-    print("########################################################################")
     # Construct the endpoint using the environment variables
     close_trade_endpoint = f"http://{backend_uri}:{backend_port}/closetrades/close_trade"
     
@@ -529,9 +527,10 @@ def user_trade_close(symbol, direction,reason):
     # Send the POST request with JSON data
     response = requests.post(close_trade_endpoint, json=payload)
     data = response.json()
-    
+
+    print("###############################")
     print(data["message"])
-    print("########################################################################")
+    print("###############################")
 
 
 # ---------- TRADING SIMULATION ----------
@@ -684,16 +683,16 @@ class TradingSimulation:
         current_low = row["low"]
         current_high = row["high"]
         time=row["timestamp"]
-        print("--------------")
+
+        print("---------------------------")
         print("time: ",time)
         print("direction: ",direction)
+
         if direction == "LONG":
             print("----------")
-            print("Low: ",current_low)
-            print("SL: ",sl)
+            print("Low: ",current_low," <= SL ",sl)
             print("---")
-            print("High: ",current_high)
-            print("TP: ",tp)
+            print("High: ",current_high," >= TP ",tp)
             print("----------")
             if current_low <= sl:
                 logger.info("----------")
@@ -711,11 +710,9 @@ class TradingSimulation:
             return False
         else:
             print("----------")
-            print("High: ",current_high)
-            print("SL: ",sl)
+            print("High: ",current_high," >= SL ",sl)
             print("---")
-            print("Low: ",current_low)
-            print("TP: ",tp)
+            print("Low: ",current_low," <= TP ",tp)
             print("----------")
             if current_high >= sl:
                 logger.info("----------")
@@ -842,7 +839,7 @@ class TradeAnalysys:
             {"$set": analysis_result},
             upsert=True
         )
-        logger.info(f"Trade Analysis stored: {analysis_result}")
+        #logger.info(f"Trade Analysis stored: {analysis_result}")
 
 # ---------- LIVE TRADING LOOP ----------
 def run_live_trading(config: StrategyConfig):
@@ -868,7 +865,7 @@ def run_live_trading(config: StrategyConfig):
             continue
 
         last_processed_ts = df.iloc[-1]["timestamp"]
-        logger.info(f"New data up to: {last_processed_ts}")
+        #logger.info(f"New data up to: {last_processed_ts}")
 
         # Pipeline: Calculate indicators and features
         df = TechnicalIndicators.calculate_indicators(df, config)
@@ -876,7 +873,7 @@ def run_live_trading(config: StrategyConfig):
         df = LabelingFeature.compute_lookahead_period(df, config)
         df = LabelingFeature.compute_market_structure(df, config)
         df = LabelingFeature.compute_momentum_features(df, config)
-        logger.info(f"After compute_lookahead_period ({len(df)} rows). Last ts: {df.iloc[-1]['timestamp']}")
+        #logger.info(f"After compute_lookahead_period ({len(df)} rows). Last ts: {df.iloc[-1]['timestamp']}")
         df = LabelingFeature.compute_lorentzian_distance(df, config)
         df = CandelLabeling.label_candles(df, config)
         df = ai_model.train_and_predict(df)
@@ -898,7 +895,7 @@ def health_check():
 if __name__ == "__main__":
     # Define the list of coin/timeframe configurations
     configs = [
-        StrategyConfig(SYMBOL='BTC/USDT', TIMEFRAME='1m')
+        StrategyConfig(SYMBOL='BTC/USDT', TIMEFRAME='5m')
         # StrategyConfig(SYMBOL='ETH/USDT', TIMEFRAME='1m'),
         # StrategyConfig(SYMBOL='BNB/USDT', TIMEFRAME='1m'),
         # StrategyConfig(SYMBOL='SOL/USDT', TIMEFRAME='1m'),
