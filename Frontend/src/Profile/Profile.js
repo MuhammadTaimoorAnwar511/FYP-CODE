@@ -140,20 +140,19 @@ const BotStats = ({ botName }) => {
 
         <div className="text-blue-400">ROI (%):</div>
         <div className={`text-right ${stats["ROI (%)"] < 0 ? "text-red-500" : "text-green-500"}`}>
-            {stats["ROI (%)"].toFixed(2)}%
+          {stats["ROI (%)"].toFixed(2)}%
         </div>
 
         <div className="text-blue-400">Win Rate:</div>
         <div
-            className={`text-right ${
-                stats["Win Rate (%)"] < 40
-                    ? "text-red-500"
-                    : stats["Win Rate (%)"] < 50
-                    ? "text-yellow-500"
-                    : "text-green-500"
+          className={`text-right ${stats["Win Rate (%)"] < 40
+              ? "text-red-500"
+              : stats["Win Rate (%)"] < 50
+                ? "text-yellow-500"
+                : "text-green-500"
             }`}
         >
-            {stats["Win Rate (%)"].toFixed(2)}%
+          {stats["Win Rate (%)"].toFixed(2)}%
         </div>
 
 
@@ -319,9 +318,8 @@ const ExchangeSelector = ({ selectedExchange, setSelectedExchange, setApiKey, se
                 key={ex.name}
                 onClick={() => handleExchangeSelect(ex)}
                 onMouseEnter={() => setFocusedIndex(index)}
-                className={`flex items-center w-full px-3 py-2 text-left transition ${
-                  isFocused ? "bg-gray-600" : isSelected ? "bg-gray-600" : "hover:bg-gray-600"
-                }`}
+                className={`flex items-center w-full px-3 py-2 text-left transition ${isFocused ? "bg-gray-600" : isSelected ? "bg-gray-600" : "hover:bg-gray-600"
+                  }`}
               >
                 <img src={ex.icon || "/placeholder.svg"} alt={ex.name} className="w-5 h-5 mr-2" />
                 <span className="flex-grow">{ex.name}</span>
@@ -365,11 +363,11 @@ const ProfileInfo = ({ userData, loading, error }) => {
       {userData?._id && <p className="text-gray-300 mt-1 text-sm">{userData._id}</p>}
       {userData?.email && <p className="text-gray-300 mt-1 text-sm">{userData.email}</p>}
       {userData?.country && <p className="text-gray-300 mt-1 text-sm">{userData.country}</p>}
-      {userData?.Bots_Balance !== undefined && (
-        <p className={`mt-1 text-sm font-semibold ${userData.Bots_Balance === 0 ? "text-red-500" : "text-green-400"}`}>
-          Balance Allocated to Bots: ${userData.Bots_Balance}
-        </p>
-      )}
+      {userData?.balance_allocated_to_bots !== undefined && (
+          <p className={`mt-1 text-sm font-semibold ${userData.balance_allocated_to_bots === 0 ? "text-red-500" : "text-green-400"}`}>
+            Balance Allocated to Bots: ${userData.balance_allocated_to_bots}
+          </p>
+        )}
     </>
   )
 }
@@ -460,7 +458,7 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
 
   const handleSubscribe = async () => {
     setIsDisabled(true);
-    
+
     const response = await fetch(`${BASE_URL}/subscription/create`, {
       method: "POST",
       headers: {
@@ -469,32 +467,32 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
       body: JSON.stringify({
         bot_name: selectedBot,
         user_id: userData?._id,
-        balance_allocated: balance,
+        bot_initial_balance: balance,
       }),
     });
-  
+
     const data = await response.json();
-  
+
     if (data.error) {
       showNotification(data.error, "error");
     } else if (data.message) {
       setSubscriptions((prev) => ({ ...prev, [selectedBot]: true }));
       showNotification(data.message, "success");
-  
+
       // Call the callback to refresh data
       if (onSubscriptionUpdated) {
         onSubscriptionUpdated();
       }
     }
-  
+
     closeModal();
-  
+
     // Re-enable the button after 10 seconds
     setTimeout(() => {
       setIsDisabled(false);
     }, 10000);
   };
-  
+
 
   const handleUnsubscribe = async () => {
     if (!userData?._id || !selectedBot) {
@@ -551,19 +549,19 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
             <p className="text-gray-300 text-sm mb-4">Enter the amount you'd like to use for this bot.</p>
 
             <input
-                type="number"
-                value={balance}
-                onChange={(e) => setBalance(Number(e.target.value))}
-                onBlur={(e) => {
-                  let newValue = Number(e.target.value);
-                  if (newValue < 100) {
-                    newValue = 100;
-                  }
-                  setBalance(newValue);
-                }}
-                min="100"
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Enter balance"
+              type="number"
+              value={balance}
+              onChange={(e) => setBalance(Number(e.target.value))}
+              onBlur={(e) => {
+                let newValue = Number(e.target.value);
+                if (newValue < 100) {
+                  newValue = 100;
+                }
+                setBalance(newValue);
+              }}
+              min="100"
+              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Enter balance"
             />
 
             <div className="flex justify-end gap-3">

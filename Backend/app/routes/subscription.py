@@ -80,9 +80,9 @@ def create_subscription():
     data = request.get_json()
     bot_name = data.get("bot_name")
     user_id = data.get("user_id")
-    balance_allocated = data.get("balance_allocated")
+    bot_initial_balance = data.get("bot_initial_balance")
 
-    if not bot_name or not user_id or balance_allocated is None:
+    if not bot_name or not user_id or bot_initial_balance is None:
         return jsonify({"error": "Missing required fields"}), 400
 
     user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
@@ -99,29 +99,30 @@ def create_subscription():
     if usdt_balance == -1:
         return jsonify({"error": "Invalid API key or secret"}), 401
 
-    bots_balance = user.get("Bots_Balance", 0)  # Current allocated balance
-    new_balance = bots_balance + balance_allocated  # Updated bot balance
+    balance_allocated_to_bots = user.get("balance_allocated_to_bots", 0)  # Current allocated balance
+    new_balance = balance_allocated_to_bots + bot_initial_balance  # Updated bot balance
 
     # **Check if balance allocation is allowed**
     if new_balance > usdt_balance:
         additional_required = new_balance - usdt_balance
         return jsonify({
             "error": f"You need additional {additional_required:.2f} USDT to subscribe to {bot_name} "
-                     f"because you already allocated {bots_balance:.2f} USDT to bots."
+                     f"because you already allocated {balance_allocated_to_bots:.2f} USDT to bots."
         }), 400
 
     # **Proceed with subscription creation**
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Bots_Balance": new_balance}})
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"balance_allocated_to_bots": new_balance}})
     
-    new_user_balance = user.get("User_Balance", 0) + balance_allocated
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"User_Balance": new_user_balance}})
+    new_user_current_balance = user.get("user_current_balance", 0) + bot_initial_balance
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"user_current_balance": new_user_current_balance}})
 
     symbol = bot_name.replace("_", "/")
     subscription_id = mongo.db.subscriptions.insert_one({
         "bot_name": bot_name,
         "symbol": symbol,
         "user_id": user_id,
-        "balance_allocated": balance_allocated
+        "bot_initial_balance": bot_initial_balance,
+        "bot_current_balance" : bot_initial_balance
     }).inserted_id
 
     return jsonify({
@@ -129,8 +130,8 @@ def create_subscription():
         "subscription_id": str(subscription_id),
         "symbol": symbol,
         "usdt_balance": usdt_balance,
-        "Bots_Balance": new_balance,
-        "User_Balance": new_user_balance
+        "balance_allocated_to_bots": new_balance,
+        "user_current_balance": new_user_current_balance
     }), 201
 
 @subscription_bp.route("/status", methods=["POST"])
@@ -155,23 +156,22 @@ def delete_subscription(user_id, bot_name):
     if not subscription:
         return jsonify({"error": "No subscription found for this user and bot"}), 404
 
-    balance_allocated = subscription.get("balance_allocated", 0)
+    bot_initial_balance = subscription.get("bot_initial_balance", 0)
 
     # Find the user to update balance
-    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})  # Only convert here if needed
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})  
     if not user:
         return jsonify({"error": "User does not exist"}), 404
 
     # Deduct balance from user
-    new_balance = max(user.get("Bots_Balance", 0) - balance_allocated, 0)  
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"Bots_Balance": new_balance}})
+    new_balance = max(user.get("balance_allocated_to_bots", 0) - bot_initial_balance, 0)  
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"balance_allocated_to_bots": new_balance}})
 
 
-    new_user_balance = max(user.get("User_Balance", 0) - balance_allocated, 0)  
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"User_Balance": new_user_balance}})
+    new_user_current_balance = max(user.get("user_current_balance", 0) - bot_initial_balance, 0)  
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"user_current_balance": new_user_current_balance}})
 
     # Delete the subscription
     result = mongo.db.subscriptions.delete_one({"user_id": user_id, "bot_name": bot_name})
 
     return jsonify({"message": f"{bot_name} Bot Subscription deleted"}), 200
-
