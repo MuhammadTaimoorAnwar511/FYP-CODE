@@ -26,7 +26,7 @@ INSTUMENTS_INFO=os.getenv("INSTUMENTS_INFO")
 POSITION_LIST=os.getenv("POSITION_LIST")
 SET_LEVERAGE=os.getenv("SET_LEVERAGE")
 CREATE_ORDER=os.getenv("CREATE_ORDER")
-
+recv_window = '5000'
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DB]
 
@@ -159,7 +159,7 @@ def get_position_info(symbol: str, api_key: str, api_secret: str, base_url: str)
     params = {'category': "linear", 'symbol': symbol}
     query_str = '&'.join([f'{k}={v}' for k, v in params.items()])
     timestamp = str(int(time.time() * 1000))
-    recv_window = '5000'
+
     sign = generate_signature(api_key, api_secret, query_str, timestamp, recv_window)
     headers = {
         'X-BAPI-API-KEY': api_key,
@@ -306,7 +306,7 @@ def open_trade():
         usdt_amount = compute_usdt_amount(info["balance_allocated"], info["investment_per_trade"], info["amount_multiplier"])
 
         try:
-            leverage_resp = set_leverage_action(BASE_URL, info["api_key"], info["secret_key"], "5000", info["symbol"])
+            leverage_resp = set_leverage_action(BASE_URL, info["api_key"], info["secret_key"],recv_window, info["symbol"])
             if leverage_resp.status_code != 200:
                 results.append({
                     "user_id": user_id,
@@ -324,7 +324,7 @@ def open_trade():
                 BASE_URL,
                 info["api_key"],
                 info["secret_key"],
-                "5000",
+                recv_window,
                 info["symbol"],
                 info["direction"],
                 info["stop_loss"],

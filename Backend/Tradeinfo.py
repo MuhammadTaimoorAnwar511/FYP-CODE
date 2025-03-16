@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()  
 
 BASE_URL = os.getenv("BASE_URL")
-CLOSEPNL= os.getenv("CLOSE_PNL")
+CLOSEPNL_ENDPOINT= os.getenv("CLOSE_PNL")
 # ------------------------------------------------------------------------------
 # API Credentials and Setup
 # ------------------------------------------------------------------------------
@@ -84,38 +84,36 @@ def truncate_to_one_decimal(value: float) -> float:
 
 def process_response(response, target_avg_entry_price: float):
     """
-    Process the API response and print only the trade that has an average entry price 
+    Process the API response and return the trade that has an average entry price 
     matching the target up to one decimal place (using truncation).
     
     Args:
         response: The API response object.
         target_avg_entry_price (float): The target average entry price.
+        
+    Returns:
+        str: Trade summary or message.
     """
     data = response.json()
-    print("Status Code:", response.status_code)
     if data.get("retCode") == 0:
         results = data.get("result", {}).get("list", [])
-        found_trade = False
-        # Truncate the target value to one decimal place for comparison
         target_truncated = truncate_to_one_decimal(target_avg_entry_price)
         for trade in results:
             avg_entry_price = trade.get("avgEntryPrice")
             try:
                 if avg_entry_price is not None:
-                    # Truncate the trade's avgEntryPrice to one decimal place
                     trade_truncated = truncate_to_one_decimal(float(avg_entry_price))
                     if trade_truncated == target_truncated:
                         symbol = trade.get("symbol")
                         direction = trade.get("side")
                         pnl = trade.get("closedPnl")
-                        print(f"Symbol: {symbol}, Direction: {direction}, Avg Entry Price: {avg_entry_price}, PnL: {pnl}")
-                        found_trade = True
+                        return f"Symbol: {symbol}, Direction: {direction}, Avg Entry Price: {avg_entry_price}, PnL: {pnl}"
             except ValueError:
                 continue
-        if not found_trade:
-            print(f"No trade found with Avg Entry Price matching {target_truncated} (truncated)")
+        return f"No trade found with Avg Entry Price matching {target_truncated} (truncated)"
     else:
-        print("Error:", data.get("retMsg"))
+        return f"Error: {data.get('retMsg')}"
+
 
 # ------------------------------------------------------------------------------
 # 
@@ -127,12 +125,10 @@ def main():
     for a specific average entry price using truncation to one decimal.
     """
     SYMBOL = "BTCUSDT"
-    target_avg_entry_price = 84302.8 
-    response = fetch_closed_pnl(API_KEY, API_SECRET, BASE_URL, CLOSEPNL, SYMBOL, RECV_WINDOW)
-    # Set the target average entry price.
-    # For example, 84258.81097561 will be truncated to 84258.8 for comparison.
- 
-    process_response(response, target_avg_entry_price)
+    target_avg_entry_price = 84123.1
+    response = fetch_closed_pnl(API_KEY, API_SECRET, BASE_URL, CLOSEPNL_ENDPOINT, SYMBOL, RECV_WINDOW)
+    result = process_response(response, target_avg_entry_price)
+    print(result)
 
 if __name__ == "__main__":
     main()
