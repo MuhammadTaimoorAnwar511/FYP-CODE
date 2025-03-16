@@ -952,8 +952,8 @@ def health_check():
 if __name__ == "__main__":
     # Define the list of coin/timeframe configurations
     configs = [
-        StrategyConfig(SYMBOL='BTC/USDT', TIMEFRAME='1m'),
-        StrategyConfig(SYMBOL='ETH/USDT', TIMEFRAME='1m')
+        StrategyConfig(SYMBOL='BTC/USDT', TIMEFRAME='1m')
+        #StrategyConfig(SYMBOL='ETH/USDT', TIMEFRAME='1m')
         # StrategyConfig(SYMBOL='BNB/USDT', TIMEFRAME='1m'),
         # StrategyConfig(SYMBOL='SOL/USDT', TIMEFRAME='1m'),
         # StrategyConfig(SYMBOL='1000PEPE/USDT', TIMEFRAME='1m')

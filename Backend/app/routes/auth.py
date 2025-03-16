@@ -20,7 +20,7 @@ def is_strong_password(password):
         return "Password must contain at least one digit"
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
         return "Password must contain at least one special character"
-    return None  # Valid password
+    return None 
 
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
@@ -54,7 +54,21 @@ def signup():
         "secret_key": None,
     }
 
-    mongo.db.users.insert_one(user_data)
+    # Insert user and get the generated user ID
+    user_result = mongo.db.users.insert_one(user_data)
+    user_id = str(user_result.inserted_id)  # Convert ObjectId to string
+
+    # Create journal entry with string User_Id
+    journal_data = {
+        "User_Id": user_id,  # Now stored as string
+        "Total_Signals": 0,
+        "Signals_Closed_in_Profit": 0,
+        "Signals_Closed_in_Loss": 0,
+        "Current_Running_Signals": 0,
+        "Avg_Profit_USDT": 0.0,
+        "Avg_Loss_USDT": 0.0
+    }
+    mongo.db.journals.insert_one(journal_data)
 
     return jsonify({"message": "User created successfully"}), 201
 
