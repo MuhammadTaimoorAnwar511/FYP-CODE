@@ -39,11 +39,11 @@ def find_user_by_id(user_id_str):
     """
     return users_collection.find_one({"_id": ObjectId(user_id_str)})
 
-def get_subscription_by_symbol(symbol):
+def get_subscriptions_by_symbol(symbol):
     """
-    Retrieve a subscription document matching the provided symbol.
+    Retrieve all subscription documents matching the provided symbol.
     """
-    return subscriptions_collection.find_one({"symbol": symbol})
+    return subscriptions_collection.find({"symbol": symbol})
 
 def get_user_trade_collection(user_id):
     """
@@ -292,61 +292,85 @@ def close_trade():
     if not symbol or not direction or not reason:
         return jsonify({"message": "Missing required parameters."}), 400
 
-    # Step 1: Find the subscription for the provided symbol.
-    subscription = get_subscription_by_symbol(symbol)
-    if not subscription:
-        return jsonify({"message": "Subscription not found for the provided symbol"}), 404
+    # Step 1: Find ALL subscriptions for the provided symbol
+    subscriptions = list(get_subscriptions_by_symbol(symbol))
+    if not subscriptions:
+        return jsonify({"message": "No subscriptions found for the provided symbol"}), 404
 
-    # Step 2: Get the user document and log API keys.
-    user_id = subscription.get("user_id")
-    user = find_user_by_id(user_id)
-    #log_user_keys(user)
+    results = []
 
-    # Step 3: Retrieve the user's trade collection.
-    user_trade_collection = get_user_trade_collection(user_id)
-    if user_trade_collection.name not in db.list_collection_names():
-        print("User trade collection not found.")
+    for subscription in subscriptions:
+        user_id = subscription.get("user_id")
+        
+        # Step 2: Get user document
+        user = find_user_by_id(user_id)
+        if not user:
+            results.append({"user_id": user_id, "status": "error", "message": "User not found"})
+            continue
 
-    # Step 4: Find an open trade matching the symbol and direction.
-    trade = find_open_trade(user_trade_collection, symbol, direction)
-    if not trade:
-        return jsonify({"message": "Open trade not found for the provided symbol and direction"}), 404
+        # Step 3: Get user's trade collection
+        user_trade_collection = get_user_trade_collection(user_id)
+        if user_trade_collection.name not in db.list_collection_names():
+            results.append({"user_id": user_id, "status": "error", "message": "Trade collection not found"})
+            continue
 
-    # Step 5: Extract entry_price from the trade
-    entry_price = trade.get("entry_price")
-    if not entry_price:
-        return jsonify({"message": "Entry price not found in trade document"}), 500
+        # Step 4: Find open trade
+        trade = find_open_trade(user_trade_collection, symbol, direction)
+        if not trade:
+            results.append({"user_id": user_id, "status": "error", "message": "Open trade not found"})
+            continue
 
-    target_avg_entry_price = float(entry_price)
-
-    # Step 6: Fetch closed PnL from Bybit
-    api_key = user.get("api_key")
-    api_secret = user.get("secret_key")
-    time.sleep(10) 
-    response = fetch_closed_pnl(api_key, api_secret, BASE_URL, CLOSEPNL_ENDPOINT, symbol, recv_window)
-    result = process_response(response, target_avg_entry_price)
-
-    # Step 7: Parse the result string to extract PnL
-    pnl_value = None
-    if result.startswith("Symbol:"):
+        # Step 5: Process trade closure
         try:
-            parts = result.split(", ")
-            parsed_data = {k.strip(): v.strip() for k, v in (item.split(":") for item in parts)}
-            pnl_value = float(parsed_data.get("PnL", 0))
+            entry_price = trade.get("entry_price")
+            if not entry_price:
+                results.append({"user_id": user_id, "status": "error", "message": "Entry price missing"})
+                continue
+
+            target_avg_entry_price = float(entry_price)
+
+            # Step 6: Fetch closed PnL from Bybit
+            api_key = user.get("api_key")
+            api_secret = user.get("secret_key")
+            time.sleep(10)  # Maintain exchange sync delay if needed
+            response = fetch_closed_pnl(api_key, api_secret, BASE_URL, CLOSEPNL_ENDPOINT, symbol, recv_window)
+            result = process_response(response, target_avg_entry_price)
+
+            # Step 7: Parse PnL
+            pnl_value = None
+            if result.startswith("Symbol:"):
+                try:
+                    parts = result.split(", ")
+                    parsed_data = {k.strip(): v.strip() for k, v in (item.split(":") for item in parts)}
+                    pnl_value = float(parsed_data.get("PnL", 0))
+                except Exception as e:
+                    print(f"Error parsing PnL for user {user_id}: {str(e)}")
+                    pnl_value = None
+            else:
+                print(f"Process response failed for user {user_id}: {result}")
+
+            # Step 8: Update trade status
+            exit_time = update_trade_status(user_trade_collection, trade["_id"], reason, pnl=pnl_value)
+
+            # Step 9: Update balances
+            if pnl_value is not None:
+                update_balances(user_id, pnl_value, symbol)
+
+            results.append({
+                "user_id": user_id,
+                "status": "success",
+                "exit_time": exit_time.isoformat(),
+                "pnl_result": result
+            })
+
         except Exception as e:
-            print("Error parsing PnL value from result:", str(e))
-    else:
-        print("process_response returned:", result)
+            results.append({
+                "user_id": user_id,
+                "status": "error",
+                "message": f"Error processing trade: {str(e)}"
+            })
 
-    # Step 8: Update trade status and include PnL if available
-    exit_time = update_trade_status(user_trade_collection, trade["_id"], reason, pnl=pnl_value)
-    # Step 9: Update balances using helper function
-    if pnl_value is not None:
-        update_balances(user_id, pnl_value, symbol)
-
-    # Step 10: Return response
     return jsonify({
-        "message": "User trade closed successfully",
-        "exit_time": exit_time.isoformat(),
-        "pnl_result": result
+        "message": "Batch processing completed",
+        "results": results
     }), 200

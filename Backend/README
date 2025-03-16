@@ -12,10 +12,14 @@ flask run --reload
     "passphrase": "Ta@1@2@3@4@5"
 }
 =======
-#BYBIT
-api_key = "FVxJssLNFyUgq5OTyt"
-api_secret = "3PstkL6fJ6vkyTOPCPR0jIGOaoeQQdBv6sDl"
+#BYBIT i21-1232 account
+api_key = FVxJssLNFyUgq5OTyt
+api_secret = 3PstkL6fJ6vkyTOPCPR0jIGOaoeQQdBv6sDl
 =======
-"password": "Securepassword@1"
+#BYBIT spm account
+api_key =  EXRPpunGnRiIXo68Xd
+api_secret = MgQDqB2Tk1Ptiz8FlcvklaPkeO4i3nOTXeIk
+========
+"password": Securepassword@1
 #bot.py 
 self.mongo_uri="mongodb+srv://proCodingTech:VMYg1AYhLXaGHADT@cluster0.ranzqwd.mongodb.net/"
