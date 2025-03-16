@@ -264,7 +264,7 @@ def build_trade_info(trade_data: dict, sub: dict, user: dict) -> dict:
         "investment_per_trade": float(trade_data.get("investment_per_trade", 0)),
         "amount_multiplier": int(float(trade_data.get("amount_multiplier", 0))),
         "user_id": sub.get("user_id"),
-        "balance_allocated": sub.get("balance_allocated", 0),
+        "bot_initial_balance": sub.get("bot_initial_balance",0),
         "api_key": user.get("api_key"),
         "secret_key": user.get("secret_key")
     }
@@ -303,7 +303,7 @@ def open_trade():
             results.append({"user_id": user_id, "status": "failed", "error": str(e)})
             continue
 
-        usdt_amount = compute_usdt_amount(info["balance_allocated"], info["investment_per_trade"], info["amount_multiplier"])
+        usdt_amount = compute_usdt_amount(info["bot_initial_balance"], info["investment_per_trade"], info["amount_multiplier"])
 
         try:
             leverage_resp = set_leverage_action(BASE_URL, info["api_key"], info["secret_key"],recv_window, info["symbol"])

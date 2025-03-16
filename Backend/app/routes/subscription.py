@@ -168,7 +168,7 @@ def delete_subscription(user_id, bot_name):
     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"balance_allocated_to_bots": new_balance}})
 
 
-    new_user_current_balance = max(user.get("user_current_balance", 0) - bot_initial_balance, 0)  
+    new_user_current_balance = user.get("user_current_balance", 0) - bot_initial_balance
     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"user_current_balance": new_user_current_balance}})
 
     # Delete the subscription

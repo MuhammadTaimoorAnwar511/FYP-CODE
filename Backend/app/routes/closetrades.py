@@ -52,16 +52,30 @@ def get_user_trade_collection(user_id):
     collection_name = f"user_{user_id}"
     return db[collection_name]
 
+#def find_open_trade(trade_collection, symbol, direction):
+    # """
+    # Find an open trade in the user's trade collection matching the cleaned symbol and direction.
+    # """
+    # clean_symbol = symbol.replace("/", "")
+    # return trade_collection.find_one({
+    #     "symbol": clean_symbol,
+    #     "direction": direction,
+    #     "status": "OPEN"
+    # })
+
 def find_open_trade(trade_collection, symbol, direction):
     """
-    Find an open trade in the user's trade collection matching the cleaned symbol and direction.
+    Find the latest open trade using find_one with sorting.
     """
     clean_symbol = symbol.replace("/", "")
-    return trade_collection.find_one({
-        "symbol": clean_symbol,
-        "direction": direction,
-        "status": "OPEN"
-    })
+    return trade_collection.find_one(
+        {
+            "symbol": clean_symbol,
+            "direction": direction,
+            "status": "OPEN"
+        },
+        sort=[("entry_time", -1)] 
+    )
 
 def update_trade_status(trade_collection, trade_id, reason, pnl=None):
     """
@@ -81,7 +95,7 @@ def update_trade_status(trade_collection, trade_id, reason, pnl=None):
     if not update_fields:
         raise ValueError("No fields to update. Update path is empty.")
 
-    print(f"[DEBUG] Updating trade with: {update_fields}")
+    #print(f"[DEBUG] Updating trade with: {update_fields}")
 
     trade_collection.update_one(
         {"_id": trade_id},
@@ -162,36 +176,102 @@ def truncate_to_one_decimal(value: float) -> float:
     return math.floor(value * 10) / 10
 
 def process_response(response, target_avg_entry_price: float):
-    """
-    Process the API response and return the trade that has an average entry price 
-    matching the target up to one decimal place (using truncation).
+    data = None  
     
-    Args:
-        response: The API response object.
-        target_avg_entry_price (float): The target average entry price.
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            #print(f"[DEBUG] Full API Response: {data}")  # Log entire response
+        except requests.exceptions.JSONDecodeError:
+            print(f"[✖] JSON decode error. Response text: {response.text}")
+            return "Error: Invalid API response format"
+    else:
+        print(f"[✖] Close Trade API failed. Status: {response.status_code}, Text: {response.text}")
+        return f"Error: API request failed ({response.status_code})"
+
+    if not data:
+        return "Error: No valid response data"
         
-    Returns:
-        str: Trade summary or message.
-    """
-    data = response.json()
     if data.get("retCode") == 0:
         results = data.get("result", {}).get("list", [])
         target_truncated = truncate_to_one_decimal(target_avg_entry_price)
+        #print(f"[DEBUG] Target Truncated: {target_truncated}")
+        
         for trade in results:
             avg_entry_price = trade.get("avgEntryPrice")
-            try:
-                if avg_entry_price is not None:
-                    trade_truncated = truncate_to_one_decimal(float(avg_entry_price))
-                    if trade_truncated == target_truncated:
-                        symbol = trade.get("symbol")
-                        direction = trade.get("side")
-                        pnl = trade.get("closedPnl")
-                        return f"Symbol: {symbol}, Direction: {direction}, Avg Entry Price: {avg_entry_price}, PnL: {pnl}"
-            except ValueError:
+            symbol = trade.get("symbol")
+            direction = trade.get("side")
+            #print(f"[DEBUG] Processing Trade | Symbol: {symbol} | Side: {direction} | AvgPrice: {avg_entry_price}")
+
+            if avg_entry_price is None:
+                print("[WARN] Missing avgEntryPrice in trade")
                 continue
+
+            try:
+                # Handle commas and whitespace
+                clean_price = str(avg_entry_price).replace(",", "").strip()
+                price_float = float(clean_price)
+                trade_truncated = truncate_to_one_decimal(price_float)
+                #print(f"[DEBUG] Cleaned Price: {price_float} | Trade Truncated: {trade_truncated}")
+
+                # Precision-safe comparison
+                match = round(trade_truncated, 1) == round(target_truncated, 1)
+                #print(f"[CHECK] Match: {match} | Target: {target_truncated} vs Trade: {trade_truncated}")
+
+                if match:
+                    pnl = trade.get("closedPnl")
+                    print(f"[SUCCESS] Match Found | PnL: {pnl}")
+                    return (
+                        f"Symbol: {symbol}, "
+                        f"Direction: {direction}, "
+                        f"Avg Entry Price: {avg_entry_price}, "
+                        f"PnL: {pnl}"
+                    )
+            except ValueError as e:
+                print(f"[ERROR] Invalid price '{avg_entry_price}': {str(e)}")
+                continue
+                
         return f"No trade found with Avg Entry Price matching {target_truncated} (truncated)"
     else:
         return f"Error: {data.get('retMsg')}"
+     
+def update_balances(user_id, pnl, symbol):
+    """
+    Update bot_current_balance (min 0) and user_current_balance (can be negative)
+    after trade closure.
+    """
+    try:
+       
+        subscription = subscriptions_collection.find_one({"user_id": str(user_id), "symbol": symbol})
+        if subscription:
+            current_bot_balance = subscription.get("bot_current_balance", 0)
+            new_bot_balance = max(0, current_bot_balance + pnl)
+
+            subscriptions_collection.update_one(
+                {"_id": subscription["_id"]},
+                {"$set": {"bot_current_balance": new_bot_balance}}
+            )
+        else:
+            print(f"[⚠] Subscription not found for user_id: {user_id}, symbol: {symbol}")
+
+        # ✅ Users collection: Assuming you have a global `users_collection`
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        if user:
+            current_user_balance = user.get("user_current_balance", 0)
+            new_user_balance = current_user_balance + pnl
+
+            users_collection.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"user_current_balance": new_user_balance}}
+            )
+        else:
+            print(f"[⚠] User not found in users_collection with ID: {user_id}")
+
+        print(f" Balance update completed successfully for user_id: {user_id}")
+
+    except Exception as e:
+        print(f"[✖] Exception during balance update for user_id: {user_id} -> {str(e)}")
+
 
 # ------------------------------------------------------------------------------
 # Flask Blueprint Setup
@@ -242,7 +322,7 @@ def close_trade():
     # Step 6: Fetch closed PnL from Bybit
     api_key = user.get("api_key")
     api_secret = user.get("secret_key")
-
+    time.sleep(10) 
     response = fetch_closed_pnl(api_key, api_secret, BASE_URL, CLOSEPNL_ENDPOINT, symbol, recv_window)
     result = process_response(response, target_avg_entry_price)
 
@@ -260,8 +340,11 @@ def close_trade():
 
     # Step 8: Update trade status and include PnL if available
     exit_time = update_trade_status(user_trade_collection, trade["_id"], reason, pnl=pnl_value)
+    # Step 9: Update balances using helper function
+    if pnl_value is not None:
+        update_balances(user_id, pnl_value, symbol)
 
-    # Step 9: Return response
+    # Step 10: Return response
     return jsonify({
         "message": "User trade closed successfully",
         "exit_time": exit_time.isoformat(),

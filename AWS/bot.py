@@ -122,21 +122,78 @@ class MarketDataFetcher:
         client.drop_database(db_name)
         logger.info(f"❌ Deleted existing database: {db_name}")
 
+    # @staticmethod
+    # def fetch_binance_futures_ohlcv(symbol: str, timeframe: str, limit: int,last_known_ts: pd.Timestamp = None) -> Optional[pd.DataFrame]:
+    #     """
+    #     Fetches OHLCV data from Binance Futures with retry logic.
+    #     Retries up to 3 times in case of failure.
+    #     """
+    #     exchange = ccxt.binance({'options': {'defaultType': 'future'}})
+    #     max_retries = 2
+    #     retry_delay = 15  # seconds
+
+    #     for attempt in range(max_retries):
+    #         try:
+    #             logger.info(f"Fetching {limit} bars for {symbol} on {timeframe} (Attempt {attempt+1}/{max_retries})...")
+    #             ohlcv = exchange.fetch_ohlcv(symbol, timeframe, since=None, limit=limit)
+
+    #             if not ohlcv or len(ohlcv) < 2:
+    #                 logger.warning("No or insufficient data from Binance.")
+    #                 return None
+
+    #             df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    #             df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+    #             df.drop_duplicates(subset=['timestamp'], inplace=True)
+    #             df.sort_values('timestamp', inplace=True)
+    #             df.reset_index(drop=True, inplace=True)
+
+    #             # remove last row => incomplete candle
+    #             if len(df) > 0:
+    #                 last_candle_time = df.iloc[-1]['timestamp']
+    #                 logger.info(f"Dropping the last row to ensure we skip the unfinished candle. Time: {last_candle_time}")
+    #                 df = df.iloc[:-1]  # drop final row
+
+    #             logger.info(f"✅ Successfully fetched {len(df)} fully closed bars.")
+    #             return df
+
+    #         except Exception as e:
+    #             logger.error(f"Error fetching data: {e}")
+    #             if attempt < max_retries - 1:
+    #                 logger.info(f"Retrying in {retry_delay} seconds...")
+    #                 time.sleep(retry_delay)
+    #             else:
+    #                 logger.error("❌ Maximum retries reached. Skipping this iteration.")
+    #                 return None
+
+####
+
     @staticmethod
-    def fetch_binance_futures_ohlcv(symbol: str, timeframe: str, limit: int,last_known_ts: pd.Timestamp = None) -> Optional[pd.DataFrame]:
+    def fetch_binance_futures_ohlcv(symbol: str, timeframe: str, limit: int, last_known_ts: pd.Timestamp = None) -> Optional[pd.DataFrame]:
         """
-        Fetches OHLCV data from Binance Futures with retry logic.
-        Retries up to 3 times in case of failure.
+        Fetches OHLCV data from Bybit Futures (modified for Bybit)
         """
-        exchange = ccxt.binance({'options': {'defaultType': 'future'}})
+        exchange = ccxt.bybit({
+            'options': {
+                'defaultType': 'linear'  # For USDT perpetual contracts
+            }
+        })
+
+        # Convert symbol to Bybit futures format (BTC/USDT → BTCUSDT)
+        if "/" in symbol:
+            base, quote = symbol.split("/")
+            futures_symbol = f"{base}{quote}"  # BTCUSDT
+        else:
+            futures_symbol = symbol
+            
         max_retries = 2
         retry_delay = 15  # seconds
 
         for attempt in range(max_retries):
             try:
                 logger.info(f"Fetching {limit} bars for {symbol} on {timeframe} (Attempt {attempt+1}/{max_retries})...")
-                ohlcv = exchange.fetch_ohlcv(symbol, timeframe, since=None, limit=limit)
+                ohlcv = exchange.fetch_ohlcv(futures_symbol, timeframe, since=None, limit=limit)
 
+                # Rest of the code remains unchanged
                 if not ohlcv or len(ohlcv) < 2:
                     logger.warning("No or insufficient data from Binance.")
                     return None
@@ -147,11 +204,10 @@ class MarketDataFetcher:
                 df.sort_values('timestamp', inplace=True)
                 df.reset_index(drop=True, inplace=True)
 
-                # remove last row => incomplete candle
                 if len(df) > 0:
                     last_candle_time = df.iloc[-1]['timestamp']
                     logger.info(f"Dropping the last row to ensure we skip the unfinished candle. Time: {last_candle_time}")
-                    df = df.iloc[:-1]  # drop final row
+                    df = df.iloc[:-1]
 
                 logger.info(f"✅ Successfully fetched {len(df)} fully closed bars.")
                 return df
@@ -165,6 +221,7 @@ class MarketDataFetcher:
                     logger.error("❌ Maximum retries reached. Skipping this iteration.")
                     return None
 
+####
 # ---------- TECHNICAL INDICATORS ----------
 class TechnicalIndicators:
     @staticmethod
@@ -895,7 +952,7 @@ def health_check():
 if __name__ == "__main__":
     # Define the list of coin/timeframe configurations
     configs = [
-        StrategyConfig(SYMBOL='BTC/USDT', TIMEFRAME='5m')
+        StrategyConfig(SYMBOL='BTC/USDT', TIMEFRAME='1m')
         # StrategyConfig(SYMBOL='ETH/USDT', TIMEFRAME='1m'),
         # StrategyConfig(SYMBOL='BNB/USDT', TIMEFRAME='1m'),
         # StrategyConfig(SYMBOL='SOL/USDT', TIMEFRAME='1m'),
