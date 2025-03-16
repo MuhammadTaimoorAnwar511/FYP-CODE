@@ -215,6 +215,12 @@ def store_position_data_to_mongo(user_id: str, position_data: dict):
     collection = db[f"user_{user_id}"]
     collection.insert_one(position_data)
 
+def store_data_to_journal(user_id: str):
+ 
+    collection = db[f"user_{user_id}"]
+
+
+
 # ------------------------------------------------------------------------------
 # Trade Calculation Functions
 # ------------------------------------------------------------------------------
@@ -279,7 +285,7 @@ def open_trade():
       1. Parse the incoming trade data.
       2. Validate the symbol and fetch subscriptions.
       3. For each subscription, validate direction, compute trade amount,
-         set leverage, create a market order, and store the position.
+        set leverage, create a market order, and store the position.
     """
     trade_data = parse_trade_data(request)
     if not trade_data.get("symbol"):
@@ -354,6 +360,10 @@ def open_trade():
                         "exit_time": None
                     }
                     store_position_data_to_mongo(user_id, record)
+                    #here
+                    store_data_to_journal(user_id)
+
+
             else:
                 results.append({"user_id": user_id, "status": "failed", "order": order_resp.json() if order_resp else None})
         except Exception as e:
