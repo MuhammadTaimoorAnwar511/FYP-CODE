@@ -19,7 +19,7 @@ load_dotenv()
 
 # Get the values of Bybit API details from the .env file
 BASE_URL = os.getenv("BASE_URL")
-ENDPOINT = os.getenv("ENDPOINT")
+WALLETENDPOINT = os.getenv("WALLETENDPOINT")
 TIME_ENDPOINT = os.getenv("TIME_ENDPOINT")
 
 subscription_bp = Blueprint("subscription", __name__)
@@ -51,7 +51,7 @@ def get_usdt_balance(api_key, api_secret):
         "X-BAPI-RECV-WINDOW": recv_window,
         "X-BAPI-SIGN": signature
     }
-    response = requests.get(f"{BASE_URL}{ENDPOINT}", params=params, headers=headers)
+    response = requests.get(f"{BASE_URL}{WALLETENDPOINT}", params=params, headers=headers)
     if response.status_code == 200:
         data = response.json()
         if 'result' in data and 'list' in data['result']:

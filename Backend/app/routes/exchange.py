@@ -19,7 +19,7 @@ load_dotenv()
 
 # Get the values of Bybit API details from the .env file
 BASE_URL = os.getenv("BASE_URL")
-ENDPOINT = os.getenv("ENDPOINT")
+WALLETENDPOINT = os.getenv("WALLETENDPOINT")
 TIME_ENDPOINT = os.getenv("TIME_ENDPOINT")
 
 exchange_bp = Blueprint('exchange', __name__)
@@ -59,7 +59,7 @@ def get_usdt_balance(api_key, api_secret):
         "X-BAPI-SIGN": signature
     }
 
-    response = requests.get(f"{BASE_URL}{ENDPOINT}", params=params, headers=headers)
+    response = requests.get(f"{BASE_URL}{WALLETENDPOINT}", params=params, headers=headers)
 
     if response.status_code == 200:
         data = response.json()
@@ -95,7 +95,7 @@ def update_exchange():
     if not user:
         return jsonify({"success": False, "message": "User not found"}), 404
 
-    data = request.json  # Get JSON data from the request body
+    data = request.json
 
     # Extract API credentials and selected exchange
     api_key = data.get("apiKey")
@@ -144,7 +144,7 @@ def update_exchange():
 @jwt_required()
 def DeleteConnection():
     try:
-        user_email = get_jwt_identity()  # Extract user email from JWT token
+        user_email = get_jwt_identity()
         
         # Find user by email
         user = mongo.db.users.find_one({"email": user_email})
