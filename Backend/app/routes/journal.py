@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_cors import CORS
 from pymongo import MongoClient
+from bson import ObjectId
 
 # Load environment variables
 load_dotenv()
@@ -23,26 +24,25 @@ CORS(journal_bp)
 @jwt_required()
 def journal():
     try:
-        # Get email from JWT
-        user_email = get_jwt_identity()
+        # Get user_id from JWT (already set as _id during login)
+        user_id = get_jwt_identity()
 
-        # Fetch user data
-        user = db.users.find_one({"email": user_email})
+        # Fetch user by _id
+        user = db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             return jsonify({"success": False, "message": "User not found"}), 404
 
-        user_id = str(user["_id"])
         user_balance = user.get("user_current_balance", 0.0)
 
         # Fetch journal data
-        journal_data = journal_collection.find_one({"User_Id": user_id})
+        journal_data = journal_collection.find_one({"User_Id": str(user_id)})
 
         if journal_data:
             response = {
                 "success": True,
                 "message": "Journal data fetched successfully",
                 "user": {
-                    "user_id": user_id,
+                    "user_id": str(user_id),
                     "current_balance": user_balance
                 },
                 "journal": {
@@ -55,13 +55,12 @@ def journal():
                 }
             }
             return jsonify(response), 200
-
         else:
             return jsonify({
                 "success": False,
                 "message": "No journal data found for the user",
                 "user": {
-                    "user_id": user_id,
+                    "user_id": str(user_id),
                     "current_balance": user_balance
                 }
             }), 404
@@ -69,20 +68,17 @@ def journal():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-
 @journal_bp.route("/opentrades", methods=["POST"])
 @jwt_required()
 def opentrades():
     try:
-        # Step 1: Extract email from JWT token
-        user_email = get_jwt_identity()
+        # Step 1: Extract user_id from JWT token
+        user_id = get_jwt_identity()
 
-        # Step 2: Find user info
-        user = db.users.find_one({"email": user_email})
+        # Step 2: Find user info using _id
+        user = db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             return jsonify({"success": False, "message": "User not found"}), 404
-
-        user_id = str(user["_id"])
 
         # Step 3: Determine user's trade collection name
         user_trade_collection = db[f"user_{user_id}"]
@@ -94,13 +90,13 @@ def opentrades():
             trade["_id"] = str(trade["_id"])  # Convert ObjectId to string
             open_trades.append(trade)
 
-        # Step 5: Build beautiful response
+        # Step 5: Build response
         response = {
             "success": True,
             "message": "Open trades fetched successfully",
             "user": {
-                "user_id": user_id,
-                "email": user_email
+                "user_id": str(user_id),
+                "email": user.get("email")
             },
             "open_trades": open_trades
         }
@@ -113,20 +109,18 @@ def opentrades():
 @jwt_required()
 def closetrades():
     try:
-        # Step 1: Extract email from JWT token
-        user_email = get_jwt_identity()
+        # Step 1: Extract user_id from JWT token
+        user_id = get_jwt_identity()
 
-        # Step 2: Fetch user info
-        user = db.users.find_one({"email": user_email})
+        # Step 2: Fetch user info using user_id
+        user = db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             return jsonify({"success": False, "message": "User not found"}), 404
-
-        user_id = str(user["_id"])
 
         # Step 3: Get user's trades collection
         user_trade_collection = db[f"user_{user_id}"]
 
-        # Step 4: Query for closed trades with status "TP" or "SL", sorted by exit_time descending
+        # Step 4: Query for closed trades (TP or SL), sorted by exit_time descending
         closed_trades_cursor = user_trade_collection.find(
             {"status": {"$in": ["TP", "SL"]}}
         ).sort("exit_time", -1)
@@ -141,11 +135,12 @@ def closetrades():
             "success": True,
             "message": "Closed trades fetched successfully",
             "user": {
-                "user_id": user_id,
-                "email": user_email
+                "user_id": str(user_id),
+                "email": user.get("email")
             },
             "closed_trades": closed_trades
         }
+
         return jsonify(response), 200
 
     except Exception as e:

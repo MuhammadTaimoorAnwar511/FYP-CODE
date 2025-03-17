@@ -28,6 +28,11 @@ ChartJS.register(
 );
 
 function DashboardPage() {
+  const API_HOST = process.env.REACT_APP_API_HOST
+  const API_PORT = process.env.REACT_APP_API_PORT
+  const BASE_URL = `http://${API_HOST}:${API_PORT}`
+  const token = localStorage.getItem("access_token");
+
   const [activeTab, setActiveTab] = useState('active');
 
   // Placeholder data for tables
@@ -199,7 +204,7 @@ function DashboardPage() {
             >
               Closed
             </button>
-            {/* <button
+            <button
               onClick={() => setActiveTab('cancelled')}
               className={`py-3 px-2 border-b-2 font-medium text-sm ${
                 activeTab === 'cancelled'
@@ -208,7 +213,7 @@ function DashboardPage() {
               } focus:outline-none`}
             >
               Cancelled
-            </button> */}
+            </button>
             <button
               onClick={() => setActiveTab('chart')}
               className={`py-3 px-2 border-b-2 font-medium text-sm ${

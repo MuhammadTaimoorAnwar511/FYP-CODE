@@ -13,6 +13,8 @@ import requests
 import hashlib
 import base64
 import time
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -74,20 +76,24 @@ def test_connection():
         return jsonify({"success": False, "error": "Invalid API key or secret"}), 401
     return jsonify({"success": True, "usdt_balance": usdt_balance})
 
+
+
 @subscription_bp.route("/create", methods=["POST"])
+@jwt_required()
 def create_subscription():
     """Create a new subscription after verifying API credentials and checking balance."""
-    data = request.get_json()
-    bot_name = data.get("bot_name")
-    user_id = data.get("user_id")
-    bot_initial_balance = data.get("bot_initial_balance")
-
-    if not bot_name or not user_id or bot_initial_balance is None:
-        return jsonify({"error": "Missing required fields"}), 400
-
+    user_id = get_jwt_identity()  # ✅ Get user _id from token
     user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+
     if not user:
         return jsonify({"error": "User not found"}), 404
+
+    data = request.get_json()
+    bot_name = data.get("bot_name")
+    bot_initial_balance = data.get("bot_initial_balance")
+
+    if not bot_name or bot_initial_balance is None:
+        return jsonify({"error": "Missing required fields"}), 400
 
     api_key = user.get("api_key")
     api_secret = user.get("secret_key")
@@ -99,10 +105,9 @@ def create_subscription():
     if usdt_balance == -1:
         return jsonify({"error": "Invalid API key or secret"}), 401
 
-    balance_allocated_to_bots = user.get("balance_allocated_to_bots", 0)  # Current allocated balance
-    new_balance = balance_allocated_to_bots + bot_initial_balance  # Updated bot balance
+    balance_allocated_to_bots = user.get("balance_allocated_to_bots", 0)
+    new_balance = balance_allocated_to_bots + bot_initial_balance
 
-    # **Check if balance allocation is allowed**
     if new_balance > usdt_balance:
         additional_required = new_balance - usdt_balance
         return jsonify({
@@ -110,7 +115,7 @@ def create_subscription():
                      f"because you already allocated {balance_allocated_to_bots:.2f} USDT to bots."
         }), 400
 
-    # **Proceed with subscription creation**
+    # Proceed with subscription creation
     mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"balance_allocated_to_bots": new_balance}})
     
     new_user_current_balance = user.get("user_current_balance", 0) + bot_initial_balance
@@ -120,9 +125,9 @@ def create_subscription():
     subscription_id = mongo.db.subscriptions.insert_one({
         "bot_name": bot_name,
         "symbol": symbol,
-        "user_id": user_id,
+        "user_id": str(user_id),
         "bot_initial_balance": bot_initial_balance,
-        "bot_current_balance" : bot_initial_balance
+        "bot_current_balance": bot_initial_balance
     }).inserted_id
 
     return jsonify({
@@ -135,21 +140,27 @@ def create_subscription():
     }), 201
 
 @subscription_bp.route("/status", methods=["POST"])
+@jwt_required()
 def check_subscription_status():
-    data = request.get_json() 
-    user_id = data.get("user_id")  # Keep as a string
+    user_id = get_jwt_identity()  # ✅ Get user _id from token
+    data = request.get_json()
     bot_name = data.get("bot_name")
 
-    if not all([user_id, bot_name]):
-        return jsonify({"error": "Missing required fields"}), 400
+    if not bot_name:
+        return jsonify({"error": "Missing bot_name field"}), 400
 
-    # Query the database with user_id as a string
-    subscription = mongo.db.subscriptions.find_one({"user_id": user_id, "bot_name": bot_name})
+    # Query the database using user_id from token
+    subscription = mongo.db.subscriptions.find_one({
+        "user_id": str(user_id),
+        "bot_name": bot_name
+    })
 
     return jsonify({"subscribed": bool(subscription)}), 200
 
+
 @subscription_bp.route("/delete/<user_id>/<bot_name>", methods=["DELETE"])
 def delete_subscription(user_id, bot_name):
+    
     # Query the subscription using user_id as a string
     subscription = mongo.db.subscriptions.find_one({"user_id": user_id, "bot_name": bot_name})
 

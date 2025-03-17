@@ -295,7 +295,7 @@ def close_trade():
     # Step 1: Find ALL subscriptions for the provided symbol
     subscriptions = list(get_subscriptions_by_symbol(symbol))
     if not subscriptions:
-        return jsonify({"message": "No subscriptions found for the provided symbol"}), 404
+        return jsonify({"message": f"No subscriptions found for the provided {symbol}"}), 404
 
     results = []
 
@@ -371,6 +371,6 @@ def close_trade():
             })
 
     return jsonify({
-        "message": "Batch processing completed",
+        "message": "Batch processing completed for close trade",
         "results": results
     }), 200

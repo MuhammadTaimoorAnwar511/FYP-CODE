@@ -319,8 +319,15 @@ def open_trade():
         return jsonify({"error": "Missing symbol"}), 400
 
     subscriptions = fetch_subscriptions_by_symbol(trade_data["symbol"])
+    # if not subscriptions:
+    #     return jsonify({"error": "No subscriptions found"}), 404
+
     if not subscriptions:
-        return jsonify({"error": "No subscriptions found"}), 404
+        return jsonify({
+            "success": False,
+            "message": f"No users have subscribed to {trade_data['symbol']} yet."
+        }), 404
+
 
     results = []
     for sub in subscriptions:

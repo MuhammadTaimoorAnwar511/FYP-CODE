@@ -10,13 +10,15 @@ CORS(profile_bp)
 @profile_bp.route("/profile", methods=["GET"])
 @jwt_required()
 def profile():
-    email = get_jwt_identity()  # Extract the email from the JWT token
-    user = mongo.db.users.find_one({"email": email}, {"password": False})  # Only exclude password
+    user_id = get_jwt_identity() 
+
+    # Convert user_id string to ObjectId for MongoDB query
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)}, {"password": False})
 
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    # Convert ObjectId to string for JSON serialization
+    # Convert ObjectId to string for JSON response
     user["_id"] = str(user["_id"])
 
     return jsonify(user), 200

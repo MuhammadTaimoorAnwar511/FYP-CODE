@@ -86,7 +86,10 @@ def login():
     if not user or not bcrypt.check_password_hash(user["password"], password):
         return jsonify({"message": "Invalid email or password"}), 401
 
-    # Set token expiry to 1 day explicitly
-    access_token = create_access_token(identity=email, expires_delta=timedelta(days=1))
+    # Use string version of ObjectId for token identity
+    user_id_str = str(user["_id"])
+
+    # Token expires in 1 day
+    access_token = create_access_token(identity=user_id_str, expires_delta=timedelta(days=1))
 
     return jsonify({"access_token": access_token}), 200

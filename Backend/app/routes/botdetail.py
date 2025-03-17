@@ -7,7 +7,7 @@ CORS(botdetail_bp)
 
 @botdetail_bp.route("/detail", methods=["GET"])
 def getbotdetail():
-    botname = request.args.get("botname")  # Get botname from URL query params
+    botname = request.args.get("botname")  
     if not botname:
         return jsonify({"error": "botname parameter is required"}), 400
 

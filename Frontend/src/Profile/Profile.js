@@ -407,20 +407,30 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
   ]
 
   const checkSubscriptionStatus = async (botName) => {
-    const response = await fetch(`${BASE_URL}/subscription/status`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: userData?._id,
-        bot_name: botName,
-      }),
-    })
-
-    const data = await response.json()
-    return data.subscribed
-  }
+    const token = localStorage.getItem("access_token");
+  
+    if (!token) return false;
+  
+    try {
+      const response = await fetch(`${BASE_URL}/subscription/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // ✅ Important!
+        },
+        body: JSON.stringify({
+          bot_name: botName, // ✅ No need to send user_id anymore
+        }),
+      });
+  
+      const data = await response.json();
+      return data.subscribed;
+    } catch (error) {
+      console.error("Error checking subscription status:", error);
+      return false;
+    }
+  };
+  
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -457,12 +467,14 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
   }
 
   const handleSubscribe = async () => {
+    const token = localStorage.getItem("access_token")
     setIsDisabled(true);
 
     const response = await fetch(`${BASE_URL}/subscription/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         bot_name: selectedBot,
@@ -490,11 +502,12 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
     // Re-enable the button after 10 seconds
     setTimeout(() => {
       setIsDisabled(false);
-    }, 10000);
+    }, 5000);
   };
 
 
   const handleUnsubscribe = async () => {
+    const token = localStorage.getItem("access_token")
     if (!userData?._id || !selectedBot) {
       showNotification("User ID or bot name is missing!", "error")
       return
@@ -504,6 +517,7 @@ const BotSubscription = ({ userData, onSubscriptionUpdated }) => {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     })
 
@@ -638,6 +652,7 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
   }, [userData])
 
   const testConnection = async () => {
+    const token = localStorage.getItem("access_token")
     if (!apiKey || !apiSecret) {
       setConnectionStatus("error")
       showNotification("Please fill in all fields", "error")
@@ -650,6 +665,7 @@ const ExchangeConnectionForm = ({ userData, onConnectionUpdated }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           api_key: apiKey,

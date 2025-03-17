@@ -71,7 +71,14 @@ def get_usdt_balance(api_key, api_secret):
     return -1  # Default if USDT balance is not found
 
 @exchange_bp.route('/TestConnection', methods=['POST'])
+@jwt_required()
 def test_connection():
+    user_id = get_jwt_identity()
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        return jsonify({"success": False, "error": "Unauthorized user"}), 403
+
     data = request.get_json()
     api_key = data.get("api_key")
     api_secret = data.get("api_secret")
@@ -89,8 +96,8 @@ def test_connection():
 @exchange_bp.route("/SaveConnection", methods=["PUT"])
 @jwt_required()
 def update_exchange():
-    email = get_jwt_identity()  
-    user = mongo.db.users.find_one({"email": email})
+    user_id = get_jwt_identity()  # Now using _id from token
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
 
     if not user:
         return jsonify({"success": False, "message": "User not found"}), 404
@@ -132,46 +139,47 @@ def update_exchange():
         "api_key": api_key,
         "secret_key": api_secret
     }
-    mongo.db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": update_data})
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
 
     return jsonify({
         "success": True,
         "message": f"Exchange '{selected_exchange}' connected successfully!",
         "usdt_balance": usdt_balance
-    })
+    }), 200
+
 
 @exchange_bp.route('/DeleteConnection', methods=['DELETE'])
 @jwt_required()
-def DeleteConnection():
+def delete_connection():
     try:
-        user_email = get_jwt_identity()
-        
-        # Find user by email
-        user = mongo.db.users.find_one({"email": user_email})
+        user_id = get_jwt_identity()  # _id from JWT token
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+
         if not user:
             return jsonify({"message": "User not found"}), 404
-        
-        user_id_str = str(user["_id"])  # Convert ObjectId to string to match `subscriptions` data
 
-        # Check if the user is subscribed to any bot
+        user_id_str = str(user["_id"])  # For comparing in subscriptions (if stored as string)
+
+        # Check if user is subscribed to any bots
         active_subscriptions = list(mongo.db.subscriptions.find({"user_id": user_id_str}))
         if active_subscriptions:
-            subscribed_bots = [sub["bot_name"] for sub in active_subscriptions]
+            subscribed_bots = [sub.get("bot_name", "Unknown") for sub in active_subscriptions]
             return jsonify({
                 "error": "Unsubscribe from the following bots first.",
                 "subscribed_bots": subscribed_bots
             }), 400
 
-        # Update the user’s exchange connection fields to null
+        # Clear exchange connection info
         mongo.db.users.update_one(
-            {"_id": user["_id"]},
+            {"_id": ObjectId(user_id)},
             {"$set": {
                 "exchange": None,
                 "api_key": None,
-                "secret_key": None,
+                "secret_key": None
             }}
         )
 
         return jsonify({"message": "Exchange connection deleted successfully"}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
