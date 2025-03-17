@@ -33,6 +33,9 @@ from app.routes.opentrades import opentrades_bp
 app.register_blueprint(opentrades_bp, url_prefix="/opentrades")
 from app.routes.closetrades import closetrades_bp
 app.register_blueprint(closetrades_bp, url_prefix="/closetrades")
+from app.routes.journal import journal_bp
+app.register_blueprint(journal_bp, url_prefix="/journal")
+
 @app.route("/")
 def home():
     return {"message": "Flask Backend is Running!"}

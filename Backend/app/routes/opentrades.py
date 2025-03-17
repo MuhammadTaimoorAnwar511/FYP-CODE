@@ -33,6 +33,7 @@ db = client[MONGO_DB]
 # MongoDB collections
 subscriptions_collection = db['subscriptions']
 users_collection = db['users']
+journal_collection=db['journals']
 
 # ------------------------------------------------------------------------------
 # Flask Blueprint Setup
@@ -216,10 +217,36 @@ def store_position_data_to_mongo(user_id: str, position_data: dict):
     collection.insert_one(position_data)
 
 def store_data_to_journal(user_id: str):
- 
     collection = db[f"user_{user_id}"]
 
+    trades = list(collection.find({"user_id": user_id}))
 
+    total_signals = len(trades)
+    signals_closed_in_profit = sum(1 for t in trades if t.get("status") == "TP")
+    signals_closed_in_loss = sum(1 for t in trades if t.get("status") == "SL")
+    current_running_signals = sum(1 for t in trades if t.get("status") == "OPEN")
+
+    profit_trades = [t for t in trades if t.get("status") == "TP" and "PNL" in t]
+    loss_trades = [t for t in trades if t.get("status") == "SL" and "PNL" in t]
+
+    avg_profit_usdt = sum(t["PNL"] for t in profit_trades if isinstance(t["PNL"], (int, float))) / len(profit_trades) if profit_trades else 0
+    avg_loss_usdt = sum(t["PNL"] for t in loss_trades if isinstance(t["PNL"], (int, float))) / len(loss_trades) if loss_trades else 0
+
+    # Update or insert journal summary for this user
+    journal_collection.update_one(
+        {"User_Id": user_id},
+        {
+            "$set": {
+                "Total_Signals": total_signals,
+                "Signals_Closed_in_Profit": signals_closed_in_profit,
+                "Signals_Closed_in_Loss": signals_closed_in_loss,
+                "Current_Running_Signals": current_running_signals,
+                "Avg_Profit_USDT": round(avg_profit_usdt, 2),
+                "Avg_Loss_USDT": round(avg_loss_usdt, 2)
+            }
+        },
+        upsert=True
+    )
 
 # ------------------------------------------------------------------------------
 # Trade Calculation Functions
@@ -361,6 +388,7 @@ def open_trade():
                     }
                     store_position_data_to_mongo(user_id, record)
                     #here
+                    time.sleep(2)
                     store_data_to_journal(user_id)
 
 
