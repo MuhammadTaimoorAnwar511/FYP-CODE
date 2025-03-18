@@ -289,15 +289,18 @@ def build_trade_info(trade_data: dict, sub: dict, user: dict) -> dict:
     """
     Build the trade information dictionary using trade data, subscription, and user details.
     """
+    symbol = trade_data.get("symbol").replace("/", "")
+    precision = 7 if symbol == "1000PEPEUSDT" else 2
+
     return {
-        "symbol": trade_data.get("symbol").replace("/", ""),
+        "symbol": symbol,
         "direction": trade_data.get("direction", "").lower(),
-        "stop_loss": round(float(trade_data.get("stop_loss", 0)), 2),
-        "take_profit": round(float(trade_data.get("take_profit", 0)), 2),
+        "stop_loss": round(float(trade_data.get("stop_loss", 0)), precision),
+        "take_profit": round(float(trade_data.get("take_profit", 0)), precision),
         "investment_per_trade": float(trade_data.get("investment_per_trade", 0)),
         "amount_multiplier": int(float(trade_data.get("amount_multiplier", 0))),
         "user_id": sub.get("user_id"),
-        "bot_initial_balance": sub.get("bot_initial_balance",0),
+        "bot_initial_balance": sub.get("bot_initial_balance", 0),
         "api_key": user.get("api_key"),
         "secret_key": user.get("secret_key")
     }
