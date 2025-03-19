@@ -272,15 +272,15 @@ def process_response(response, direction):
 
 def update_balances(user_id, pnl, symbol):
     """
-    Update bot_current_balance (min 0) and user_current_balance (can be negative)
+    Update bot_current_balance (min 0) and user_current_balance (min 0)
     after trade closure.
     """
     try:
-       
+        # Update subscription balance
         subscription = subscriptions_collection.find_one({"user_id": str(user_id), "symbol": symbol})
         if subscription:
             current_bot_balance = subscription.get("bot_current_balance", 0)
-            new_bot_balance = max(0, current_bot_balance + pnl)
+            new_bot_balance = max(0, current_bot_balance + pnl)  
 
             subscriptions_collection.update_one(
                 {"_id": subscription["_id"]},
@@ -289,11 +289,11 @@ def update_balances(user_id, pnl, symbol):
         else:
             print(f"[⚠] Subscription not found for user_id: {user_id}, symbol: {symbol}")
 
-        # ✅ Users collection: Assuming you have a global `users_collection`
+        # Update user balance
         user = users_collection.find_one({"_id": ObjectId(user_id)})
         if user:
             current_user_balance = user.get("user_current_balance", 0)
-            new_user_balance = current_user_balance + pnl
+            new_user_balance = max(0, current_user_balance + pnl)  
 
             users_collection.update_one(
                 {"_id": ObjectId(user_id)},
@@ -302,11 +302,10 @@ def update_balances(user_id, pnl, symbol):
         else:
             print(f"[⚠] User not found in users_collection with ID: {user_id}")
 
-        print(f" Balance update completed successfully for user_id: {user_id}")
+        print(f"✅ Balance update completed successfully for user_id: {user_id}")
 
     except Exception as e:
         print(f"[✖] Exception during balance update for user_id: {user_id} -> {str(e)}")
-
 
 # ------------------------------------------------------------------------------
 # Flask Blueprint Setup
@@ -367,7 +366,7 @@ def close_trade():
             # Step 6: Fetch closed PnL from Bybit
             api_key = user.get("api_key")
             api_secret = user.get("secret_key")
-            time.sleep(10)  # Maintain exchange sync delay if needed
+            time.sleep(10) 
             response = fetch_closed_pnl(api_key, api_secret, BASE_URL, CLOSEPNL_ENDPOINT, symbol, recv_window)
             result = process_response(response, direction)
 

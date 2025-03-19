@@ -189,7 +189,7 @@ def delete_subscription(user_id, bot_name):
 
     # Step 5: Delete all OPEN trades for this symbol in user_{user_id} collection
     collection = mongo.db[f"user_{user_id}"]
-    symbol = subscription.get("symbol", "").replace("/", "")  # Example: ETH/USDT -> ETHUSDT
+    symbol = subscription.get("symbol", "").replace("/", "")  
 
     deleted_result = collection.delete_many({"symbol": symbol, "status": "OPEN"})
     deleted_count = deleted_result.deleted_count
