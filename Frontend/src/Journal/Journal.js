@@ -31,14 +31,13 @@ function normalizeSymbol(symbol) {
   return symbol === "1000PEPEUSDT" ? "PEPEUSDT" : symbol;
 }
 
-// Map each symbol to an icon URL (replace these with your actual icon paths or URLs)
+// Map each symbol to an icon URL
 const coinIcons = {
   BTCUSDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/btc.svg",
   ETHUSDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg",
   BNBUSDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/bnb.svg",
   SOLUSDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/sol.svg",
-  PEPEUSDT: "https://cryptologos.cc/logos/pepe-pepe-logo.png", 
-  // Example placeholder for PEPE. Replace with your actual PEPE icon if available.
+  PEPEUSDT: "https://cryptologos.cc/logos/pepe-pepe-logo.png",
 };
 
 function getCoinIcon(symbol) {
@@ -46,15 +45,15 @@ function getCoinIcon(symbol) {
   return coinIcons[normalized] || "https://via.placeholder.com/24";
 }
 
-// Direction icons (with transparent background)
+// Direction icons
 const directionIcons = {
   SHORT: {
     colorClass: "text-red-400",
-    icon: "https://img.icons8.com/win8/512w/FA5252/long-arrow-down.png", // Red arrow down (transparent)
+    icon: "https://img.icons8.com/win8/512w/FA5252/long-arrow-down.png",
   },
   LONG: {
     colorClass: "text-green-400",
-    icon: "https://www.svgrepo.com/show/222002/up-arrow.svg", // Green arrow up (transparent)
+    icon: "https://www.svgrepo.com/show/222002/up-arrow.svg",
   },
 };
 
@@ -73,6 +72,7 @@ function DashboardPage() {
   const [user, setUser] = useState(null);
   const [openTrades, setOpenTrades] = useState([]);
   const [closedTrades, setClosedTrades] = useState([]);
+  const [currentBalanceData, setCurrentBalanceData] = useState(null);
 
   const chartRef = useRef(null);
 
@@ -123,7 +123,7 @@ function DashboardPage() {
     },
   };
 
-  // Update chart gradient when activeTab changes (if chart tab is selected)
+  // Update chart gradient when activeTab changes
   useEffect(() => {
     if (chartRef.current) {
       const chart = chartRef.current.$context.chart;
@@ -135,7 +135,7 @@ function DashboardPage() {
     }
   }, [activeTab]);
 
-  // Define fetch functions for polling
+  // Fetch functions
   const fetchJournalData = () => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
@@ -143,7 +143,7 @@ function DashboardPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Authorization": `Bearer ${token}`,
       },
     })
       .then(response => response.json())
@@ -163,7 +163,7 @@ function DashboardPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Authorization": `Bearer ${token}`,
       },
     })
       .then(response => response.json())
@@ -182,7 +182,7 @@ function DashboardPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Authorization": `Bearer ${token}`,
       },
     })
       .then(response => response.json())
@@ -194,7 +194,26 @@ function DashboardPage() {
       .catch(error => console.error("Error fetching closed trades:", error));
   };
 
-  // Poll for updated data every 5 minutes 10 seconds (310,000 ms)
+  const fetchCurrentBalance = () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    fetch(`${BASE_URL}/journal/currentbalance`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          setCurrentBalanceData(data);
+        }
+      })
+      .catch(error => console.error("Error fetching current balance:", error));
+  };
+
+  // Polling for updated data every 310,000 ms (5 minutes 10 seconds)
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
@@ -203,22 +222,23 @@ function DashboardPage() {
     fetchJournalData();
     fetchOpenTrades();
     fetchClosedTrades();
+    fetchCurrentBalance();
 
     const intervalId = setInterval(() => {
       fetchJournalData();
       fetchOpenTrades();
       fetchClosedTrades();
-    }, 310000);
+      fetchCurrentBalance();
+    }, 70000);
 
     return () => clearInterval(intervalId);
   }, [BASE_URL]);
 
-  // Sort open trades by entry_time descending
+  // Sort trades
   const sortedOpenTrades = [...openTrades].sort(
     (a, b) => new Date(b.entry_time) - new Date(a.entry_time)
   );
 
-  // Sort closed trades by exit_time descending
   const sortedClosedTrades = [...closedTrades].sort(
     (a, b) => new Date(b.exit_time) - new Date(a.exit_time)
   );
@@ -240,11 +260,25 @@ function DashboardPage() {
         )
       : 0;
 
+  // Determine balance text color class based on API response
+  const balanceColorClass = currentBalanceData
+    ? currentBalanceData.color === 'red'
+      ? 'text-red-400'
+      : currentBalanceData.color === 'green'
+      ? 'text-green-400'
+      : 'text-white'
+    : 'text-white';
+    
+    const winRateColor = winRate >= 50 
+    ? "text-green-400" 
+    : winRate >= 40 
+      ? "text-orange-400" 
+      : "text-red-400";
+  
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Inline style for custom scrollbar */}
+      {/* Custom scrollbar style */}
       <style>{`
-        /* Custom scrollbar for WebKit-based browsers */
         ::-webkit-scrollbar {
           width: 8px;
         }
@@ -312,28 +346,27 @@ function DashboardPage() {
           <div className="bg-gray-800 rounded-lg p-4 text-center hover:shadow-lg transition-transform transform hover:-translate-y-1">
             <p className="text-gray-300 text-sm">Avg Profit (USDT)</p>
             <p className="text-3xl font-bold mt-2 text-green-400">
-              {journal ? `${journal.average_profit_usdt}` : "0"}
+              {journal ? `$${journal.average_profit_usdt}` : "$0"}
             </p>
           </div>
           <div className="bg-gray-800 rounded-lg p-4 text-center hover:shadow-lg transition-transform transform hover:-translate-y-1">
             <p className="text-gray-300 text-sm">Avg Loss (USDT)</p>
             <p className="text-3xl font-bold mt-2 text-red-400">
-              {journal ? `${journal.average_loss_usdt}` : "0"}
+              {journal ? `$${journal.average_loss_usdt}` : "$0"}
             </p>
           </div>
           <div className="bg-gray-800 rounded-lg p-4 text-center hover:shadow-lg transition-transform transform hover:-translate-y-1">
             <p className="text-gray-300 text-sm">Win Rate</p>
-            <p className="text-3xl font-bold mt-2 text-green-400">
+            <p className={`text-3xl font-bold mt-2 ${winRateColor}`}>
               {winRate}%
             </p>
           </div>
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
           <div className="bg-gray-800 rounded-lg p-4 text-center hover:shadow-lg transition-transform transform hover:-translate-y-1">
             <p className="text-gray-300 text-sm">Realized Balance</p>
-            <p className="text-3xl font-bold mt-2">
-              {user ? `$${user.current_balance.toFixed(2)}` : "$0.00"}
+            <p className={`text-3xl font-bold mt-2 ${balanceColorClass}`}>
+              {currentBalanceData ? `$${currentBalanceData.user_current_balance.toFixed(2)}` : "$0.00"}
             </p>
           </div>
           <div className="bg-gray-800 rounded-lg p-4 text-center flex flex-col items-center justify-center">
@@ -422,7 +455,6 @@ function DashboardPage() {
                           {trade.symbol}
                         </div>
                       </td>
-                      {/* Direction with arrow icon */}
                       <td className="py-3 px-4">
                         <div className={`flex items-center ${directionIcons[trade.direction]?.colorClass}`}>
                           <img
@@ -437,9 +469,7 @@ function DashboardPage() {
                         {formatEntryTime(trade.entry_time)}
                       </td>
                       <td className="py-3 px-4 text-white">{trade.entry_price}</td>
-                      {/* SL red */}
                       <td className="py-3 px-4 text-red-400">{trade.stop_loss}</td>
-                      {/* TP green */}
                       <td className="py-3 px-4 text-green-400">{trade.take_profit}</td>
                       <td className="py-3 px-4 text-white">{trade.initial_margin}</td>
                     </tr>
@@ -490,7 +520,6 @@ function DashboardPage() {
                           {trade.symbol}
                         </div>
                       </td>
-                      {/* Direction with arrow icon */}
                       <td className="py-3 px-4">
                         <div className={`flex items-center ${directionIcons[trade.direction]?.colorClass}`}>
                           <img
@@ -505,12 +534,9 @@ function DashboardPage() {
                         {formatEntryTime(trade.entry_time)}
                       </td>
                       <td className="py-3 px-4 text-white">{trade.entry_price}</td>
-                      {/* SL red */}
                       <td className="py-3 px-4 text-red-400">{trade.stop_loss}</td>
-                      {/* TP green */}
                       <td className="py-3 px-4 text-green-400">{trade.take_profit}</td>
                       <td className="py-3 px-4 text-white">{trade.initial_margin}</td>
-                      {/* Status: TP green, SL red, else white */}
                       <td
                         className={`py-3 px-4 ${
                           trade.status === 'TP'

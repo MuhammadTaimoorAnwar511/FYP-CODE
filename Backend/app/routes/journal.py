@@ -145,3 +145,36 @@ def closetrades():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+@journal_bp.route("/currentbalance", methods=["POST"])
+@jwt_required()
+def currentbalance():
+    try:
+        # Step 1: Extract user_id from JWT token
+        user_id = get_jwt_identity()
+
+        # Step 2: Find user info using _id
+        user = db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"success": False, "message": "User not found"}), 404
+
+        # Step 3: Retrieve the user's current balance and allocated balance
+        balance = user.get("user_current_balance", 0)
+        balance_allocated_to_bots = user.get("balance_allocated_to_bots", 0)
+        
+        # Determine the color based on the comparison
+        if balance < balance_allocated_to_bots:
+            color = "red"
+        else:
+            color = "green"
+        
+        # Return the balance and color
+        return jsonify({
+            "success": True,
+            "user_current_balance": balance,
+            "color": color
+        }), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+        
