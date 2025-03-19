@@ -59,8 +59,8 @@ class StrategyConfig:
         self.random_state = 42
 
         # Trading
-        self.stop_atr_multiplier = 1.25
-        self.reward_atr_multiplier = 1.25
+        self.stop_atr_multiplier = 0.75
+        self.reward_atr_multiplier = 0.75
         self.reward_to_risk_ratio = self.reward_atr_multiplier / self.stop_atr_multiplier
         self.initial_balance = 1270.0
         self.risk_per_trade = 0.7874 # 1
@@ -952,11 +952,11 @@ def health_check():
 if __name__ == "__main__":
     # Define the list of coin/timeframe configurations
     configs = [
-        #StrategyConfig(SYMBOL='BTC/USDT', TIMEFRAME='1m')
-        #StrategyConfig(SYMBOL='ETH/USDT', TIMEFRAME='1m')
-        # StrategyConfig(SYMBOL='BNB/USDT', TIMEFRAME='1m'),
-        # StrategyConfig(SYMBOL='SOL/USDT', TIMEFRAME='1m'),
-        StrategyConfig(SYMBOL='1000PEPE/USDT', TIMEFRAME='1m')
+        StrategyConfig(SYMBOL='BTC/USDT', TIMEFRAME='5m'),
+        StrategyConfig(SYMBOL='ETH/USDT', TIMEFRAME='5m'),
+        StrategyConfig(SYMBOL='BNB/USDT', TIMEFRAME='5m'),
+        StrategyConfig(SYMBOL='SOL/USDT', TIMEFRAME='5m'),
+        StrategyConfig(SYMBOL='1000PEPE/USDT', TIMEFRAME='5m')
     ]
 
     # Start trading bot threads for each configuration (set as daemon threads)

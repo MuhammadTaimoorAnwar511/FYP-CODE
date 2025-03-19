@@ -26,7 +26,7 @@ INSTUMENTS_INFO=os.getenv("INSTUMENTS_INFO")
 POSITION_LIST=os.getenv("POSITION_LIST")
 SET_LEVERAGE=os.getenv("SET_LEVERAGE")
 CREATE_ORDER=os.getenv("CREATE_ORDER")
-recv_window = '5000'
+recv_window = '10000'
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DB]
 
@@ -159,7 +159,9 @@ def get_position_info(symbol: str, api_key: str, api_secret: str, base_url: str)
     endpoint = POSITION_LIST
     params = {'category': "linear", 'symbol': symbol}
     query_str = '&'.join([f'{k}={v}' for k, v in params.items()])
-    timestamp = str(int(time.time() * 1000))
+    #timestamp = str(int(time.time() * 1000))
+    # ✅ Use Bybit's server timestamp
+    timestamp = str(get_server_timestamp(base_url))
 
     sign = generate_signature(api_key, api_secret, query_str, timestamp, recv_window)
     headers = {
@@ -213,10 +215,12 @@ def store_position_data_to_mongo(user_id: str, position_data: dict):
     """
     Store the given position data into the user's MongoDB collection.
     """
+    
     collection = db[f"user_{user_id}"]
     collection.insert_one(position_data)
 
 def store_data_to_journal(user_id: str):
+
     collection = db[f"user_{user_id}"]
 
     trades = list(collection.find({"user_id": user_id}))
@@ -322,15 +326,12 @@ def open_trade():
         return jsonify({"error": "Missing symbol"}), 400
 
     subscriptions = fetch_subscriptions_by_symbol(trade_data["symbol"])
-    # if not subscriptions:
-    #     return jsonify({"error": "No subscriptions found"}), 404
 
     if not subscriptions:
         return jsonify({
             "success": False,
             "message": f"No users have subscribed to {trade_data['symbol']} yet."
         }), 404
-
 
     results = []
     for sub in subscriptions:
@@ -379,6 +380,7 @@ def open_trade():
                 order_id = order_data.get("result", {}).get("orderId")  # Extract orderId
                 results.append({"user_id": user_id, "status": "success", "order": order_resp.json()})
                 position_data = get_position_info(info["symbol"], info["api_key"], info["secret_key"], BASE_URL)
+                print("position_data retCode -> ",position_data["retCode"])
                 if position_data["retCode"] == 0 and position_data["result"]["list"]:
                     pos = position_data["result"]["list"][0]
                     record = {
@@ -386,7 +388,7 @@ def open_trade():
                         "orderId": order_id,
                         "symbol": pos['symbol'],
                         "direction": 'LONG' if pos['side'] == 'Buy' else 'SHORT',
-                        "entry_time": datetime.fromtimestamp(int(pos['createdTime']) / 1000, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+                        "entry_time": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
                         "entry_price": float(pos['avgPrice']),
                         "stop_loss": float(pos['stopLoss']) if pos['stopLoss'] else None,
                         "take_profit": float(pos['takeProfit']) if pos['takeProfit'] else None,
@@ -400,7 +402,6 @@ def open_trade():
                     #here
                     time.sleep(2)
                     store_data_to_journal(user_id)
-
 
             else:
                 results.append({"user_id": user_id, "status": "failed", "order": order_resp.json() if order_resp else None})

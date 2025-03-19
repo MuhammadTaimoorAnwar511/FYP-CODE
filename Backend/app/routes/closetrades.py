@@ -12,6 +12,8 @@ from pymongo import MongoClient
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 
+from pprint import pprint
+
 # ------------------------------------------------------------------------------
 # Configuration and Database Setup
 # ------------------------------------------------------------------------------
@@ -21,13 +23,13 @@ BASE_URL = os.getenv("BASE_URL")
 CLOSEPNL_ENDPOINT= os.getenv("CLOSE_PNL")
 MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB = os.getenv("MONGO_DB")
-
+TIME_ENDPOINT=os.getenv("TIME_ENDPOINT")
 # MongoDB connection and collections
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DB]
 subscriptions_collection = db['subscriptions']
 users_collection = db['users']
-recv_window = "5000"
+recv_window = "10000"
 
 # ------------------------------------------------------------------------------
 # Helper Functions (Single Responsibility)
@@ -123,6 +125,19 @@ def get_current_timestamp() -> str:
     """
     return str(int(time.time() * 1000))
 
+def get_server_timestamp(base_url: str) -> int:
+    """
+    Retrieve the server timestamp from the market time endpoint.
+    """
+    try:
+        response = requests.get(f"{base_url}{TIME_ENDPOINT}")  
+        if response.status_code == 200:
+            return int(response.json()['result']['timeNano']) // 1_000_000
+    except Exception as e:
+        print("[WARNING] Fallback to local time due to error getting server time:", str(e))
+    return int(time.time() * 1000)
+
+
 def generate_signature(api_secret: str, timestamp: str, api_key: str, recv_window: str, params: dict) -> tuple[str, str]:
     ...
 
@@ -161,7 +176,8 @@ def fetch_closed_pnl(api_key: str, api_secret: str, base_url: str, endpoint: str
         "category": "linear", 
         "symbol": symbol
     }
-    timestamp = get_current_timestamp()
+    #timestamp = get_current_timestamp()
+    timestamp = str(get_server_timestamp(base_url))
     signature, query_string = generate_signature(api_secret, timestamp, api_key, recv_window, params)
     headers = build_headers(api_key, timestamp, recv_window, signature)
     url = f"{base_url}{endpoint}?{query_string}"
@@ -175,66 +191,85 @@ def truncate_to_one_decimal(value: float) -> float:
     """
     return math.floor(value * 10) / 10
 
-def process_response(response, target_avg_entry_price: float):
-    data = None  
-    
+def process_response(response, direction):
+    #print("\n[DEBUG] Entered process_response function")
+    data = None
+
+    #print(f"[DEBUG] Response Status Code: {response.status_code}\n")
     if response.status_code == 200:
         try:
             data = response.json()
-            #print(f"[DEBUG] Full API Response: {data}")  # Log entire response
+            #print("[DEBUG] JSON response successfully decoded:")
+            #pprint(data)
         except requests.exceptions.JSONDecodeError:
-            print(f"[✖] JSON decode error. Response text: {response.text}")
+            print(f"[✖] JSON decode error. Response text:\n{response.text}")
             return "Error: Invalid API response format"
     else:
-        print(f"[✖] Close Trade API failed. Status: {response.status_code}, Text: {response.text}")
+        print(f"[✖] Close Trade API failed.\nStatus Code: {response.status_code}\nResponse Text:\n{response.text}")
         return f"Error: API request failed ({response.status_code})"
 
     if not data:
+        print("[✖] No data found in response.")
         return "Error: No valid response data"
-        
+
+    #print(f"\n[DEBUG] retCode in response: {data.get('retCode')}")
     if data.get("retCode") == 0:
         results = data.get("result", {}).get("list", [])
-        target_truncated = truncate_to_one_decimal(target_avg_entry_price)
-        #print(f"[DEBUG] Target Truncated: {target_truncated}")
-        
-        for trade in results:
-            avg_entry_price = trade.get("avgEntryPrice")
-            symbol = trade.get("symbol")
-            direction = trade.get("side")
-            #print(f"[DEBUG] Processing Trade | Symbol: {symbol} | Side: {direction} | AvgPrice: {avg_entry_price}")
+        print(f"[DEBUG] Number of trades in response: {len(results)}")
 
-            if avg_entry_price is None:
-                print("[WARN] Missing avgEntryPrice in trade")
-                continue
+        if not results:
+            print("[✖] No trades found in response 'result.list'")
+            return "No trades found in API response"
 
-            try:
-                # Handle commas and whitespace
-                clean_price = str(avg_entry_price).replace(",", "").strip()
-                price_float = float(clean_price)
-                trade_truncated = truncate_to_one_decimal(price_float)
-                #print(f"[DEBUG] Cleaned Price: {price_float} | Trade Truncated: {trade_truncated}")
+        # Determine which trade 'side' to match based on user 'direction'
+        if direction.upper() == "SHORT":
+            match_side = "Buy"
+        elif direction.upper() == "LONG":
+            match_side = "Sell"
+        else:
+            print(f"[✖] Invalid direction value provided: {direction}")
+            return f"Error: Invalid direction '{direction}'"
 
-                # Precision-safe comparison
-                match = round(trade_truncated, 1) == round(target_truncated, 1)
-                #print(f"[CHECK] Match: {match} | Target: {target_truncated} vs Trade: {trade_truncated}")
+        #print(f"[DEBUG] Matching trades where side == '{match_side}' based on direction '{direction}'")
 
-                if match:
-                    pnl = trade.get("closedPnl")
-                    print(f"[SUCCESS] Match Found | PnL: {pnl}")
-                    return (
-                        f"Symbol: {symbol}, "
-                        f"Direction: {direction}, "
-                        f"Avg Entry Price: {avg_entry_price}, "
-                        f"PnL: {pnl}"
-                    )
-            except ValueError as e:
-                print(f"[ERROR] Invalid price '{avg_entry_price}': {str(e)}")
-                continue
-                
-        return f"No trade found with Avg Entry Price matching {target_truncated} (truncated)"
+        # Filter trades
+        filtered_trades = [t for t in results if t.get("side", "").lower() == match_side.lower()]
+        #print(f"[DEBUG] Number of trades matching side '{match_side}': {len(filtered_trades)}")
+
+        if not filtered_trades:
+            print(f"[✖] No closed trades found matching direction: {direction}")
+            return f"No closed trades found matching direction: {direction}"
+
+        # Sort by updatedTime (latest first)
+        sorted_trades = sorted(filtered_trades, key=lambda x: int(x.get("updatedTime", 0)), reverse=True)
+        #print(f"\n[DEBUG] Sorted trades by updatedTime. Latest trade data:")
+        #pprint(sorted_trades[0])
+
+        latest_trade = sorted_trades[0]
+        pnl = latest_trade.get("closedPnl")
+        avg_entry_price = latest_trade.get("avgEntryPrice")
+        symbol = latest_trade.get("symbol")
+        side = latest_trade.get("side")
+        avg_exit_price = latest_trade.get("avgExitPrice")
+
+        print(f"\n[SUCCESS] Latest Trade Summary:")
+        print(f"  Symbol         : {symbol}")
+        print(f"  Direction      : {side}")
+        print(f"  Avg Entry Price: {avg_entry_price}")
+        print(f"  Avg Exit Price : {avg_exit_price}")
+        print(f"  PnL            : {pnl}")
+
+        return (
+            f"Symbol: {symbol}, "
+            f"Direction: {side}, "
+            f"Avg Entry Price: {avg_entry_price}, "
+            f"Avg Exit Price: {avg_exit_price}, "
+            f"PnL: {pnl}"
+        )
     else:
+        print(f"[✖] retCode not 0. retMsg: {data.get('retMsg')}")
         return f"Error: {data.get('retMsg')}"
-     
+
 def update_balances(user_id, pnl, symbol):
     """
     Update bot_current_balance (min 0) and user_current_balance (can be negative)
@@ -290,7 +325,7 @@ def close_trade():
     reason = data.get("reason")
 
     if not symbol or not direction or not reason:
-        return jsonify({"message": "Missing required parameters."}), 400
+        return jsonify({"message": "Missing required parameters"}), 400
 
     # Step 1: Find ALL subscriptions for the provided symbol
     subscriptions = list(get_subscriptions_by_symbol(symbol))
@@ -327,14 +362,14 @@ def close_trade():
                 results.append({"user_id": user_id, "status": "error", "message": "Entry price missing"})
                 continue
 
-            target_avg_entry_price = float(entry_price)
+           
 
             # Step 6: Fetch closed PnL from Bybit
             api_key = user.get("api_key")
             api_secret = user.get("secret_key")
             time.sleep(10)  # Maintain exchange sync delay if needed
             response = fetch_closed_pnl(api_key, api_secret, BASE_URL, CLOSEPNL_ENDPOINT, symbol, recv_window)
-            result = process_response(response, target_avg_entry_price)
+            result = process_response(response, direction)
 
             # Step 7: Parse PnL
             pnl_value = None

@@ -26,27 +26,41 @@ ChartJS.register(
   Legend
 );
 
-// A small helper function to handle the PEPE symbol variations
+// Helper function to handle PEPE symbol variations
 function normalizeSymbol(symbol) {
-  if (symbol === "1000PEPEUSDT") {
-    return "PEPEUSDT";
-  }
-  return symbol;
+  return symbol === "1000PEPEUSDT" ? "PEPEUSDT" : symbol;
 }
 
-// Map each symbol to an icon URL (replace these paths with your actual icon paths or URLs)
+// Map each symbol to an icon URL (replace these with your actual icon paths or URLs)
 const coinIcons = {
   BTCUSDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/btc.svg",
   ETHUSDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg",
   BNBUSDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/bnb.svg",
   SOLUSDT: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/sol.svg",
   PEPEUSDT: "https://cryptologos.cc/logos/pepe-pepe-logo.png", 
-  // ^ Example placeholder for PEPE. Replace with your actual PEPE icon if you have one.
+  // Example placeholder for PEPE. Replace with your actual PEPE icon if available.
 };
 
 function getCoinIcon(symbol) {
   const normalized = normalizeSymbol(symbol);
   return coinIcons[normalized] || "https://via.placeholder.com/24";
+}
+
+// Direction icons (with transparent background)
+const directionIcons = {
+  SHORT: {
+    colorClass: "text-red-400",
+    icon: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Arrow_down_red.svg", // Red arrow down (transparent)
+  },
+  LONG: {
+    colorClass: "text-green-400",
+    icon: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Arrow_Up_Green.svg", // Green arrow up (transparent)
+  },
+};
+
+// Helper function to format date/time string to "YYYY-MM-DDTHH:MM"
+function formatEntryTime(dateString) {
+  return dateString.substring(0, 16);
 }
 
 function DashboardPage() {
@@ -109,6 +123,7 @@ function DashboardPage() {
     },
   };
 
+  // Update chart gradient when activeTab changes (if chart tab is selected)
   useEffect(() => {
     if (chartRef.current) {
       const chart = chartRef.current.$context.chart;
@@ -120,11 +135,10 @@ function DashboardPage() {
     }
   }, [activeTab]);
 
-  // Fetch journal/user data
-  useEffect(() => {
+  // Define fetch functions for polling
+  const fetchJournalData = () => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
-
     fetch(`${BASE_URL}/journal/data`, {
       method: "POST",
       headers: {
@@ -140,13 +154,11 @@ function DashboardPage() {
         }
       })
       .catch(error => console.error("Error fetching journal data:", error));
-  }, [BASE_URL]);
+  };
 
-  // Fetch open trades
-  useEffect(() => {
+  const fetchOpenTrades = () => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
-
     fetch(`${BASE_URL}/journal/opentrades`, {
       method: "POST",
       headers: {
@@ -161,13 +173,11 @@ function DashboardPage() {
         }
       })
       .catch(error => console.error("Error fetching open trades:", error));
-  }, [BASE_URL]);
+  };
 
-  // Fetch closed trades
-  useEffect(() => {
+  const fetchClosedTrades = () => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
-
     fetch(`${BASE_URL}/journal/closetrades`, {
       method: "POST",
       headers: {
@@ -182,6 +192,25 @@ function DashboardPage() {
         }
       })
       .catch(error => console.error("Error fetching closed trades:", error));
+  };
+
+  // Poll for updated data every 5 minutes 10 seconds (310,000 ms)
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    // Initial fetch
+    fetchJournalData();
+    fetchOpenTrades();
+    fetchClosedTrades();
+
+    const intervalId = setInterval(() => {
+      fetchJournalData();
+      fetchOpenTrades();
+      fetchClosedTrades();
+    }, 310000);
+
+    return () => clearInterval(intervalId);
   }, [BASE_URL]);
 
   // Sort open trades by entry_time descending
@@ -220,10 +249,10 @@ function DashboardPage() {
           width: 8px;
         }
         ::-webkit-scrollbar-track {
-          background-color: #1F2937; /* matches bg-gray-800 */
+          background-color: #1F2937;
         }
         ::-webkit-scrollbar-thumb {
-          background-color: #4B5563; /* a darker shade to match theme */
+          background-color: #4B5563;
           border-radius: 4px;
         }
       `}</style>
@@ -393,11 +422,25 @@ function DashboardPage() {
                           {trade.symbol}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-white">{trade.direction}</td>
-                      <td className="py-3 px-4 text-white">{trade.entry_time}</td>
+                      {/* Direction with arrow icon */}
+                      <td className="py-3 px-4">
+                        <div className={`flex items-center ${directionIcons[trade.direction]?.colorClass}`}>
+                          <img
+                            src={directionIcons[trade.direction]?.icon}
+                            alt={trade.direction}
+                            className="w-4 h-4 mr-1"
+                          />
+                          {trade.direction}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-white">
+                        {formatEntryTime(trade.entry_time)}
+                      </td>
                       <td className="py-3 px-4 text-white">{trade.entry_price}</td>
-                      <td className="py-3 px-4 text-white">{trade.stop_loss}</td>
-                      <td className="py-3 px-4 text-white">{trade.take_profit}</td>
+                      {/* SL red */}
+                      <td className="py-3 px-4 text-red-400">{trade.stop_loss}</td>
+                      {/* TP green */}
+                      <td className="py-3 px-4 text-green-400">{trade.take_profit}</td>
                       <td className="py-3 px-4 text-white">{trade.initial_margin}</td>
                     </tr>
                   ))
@@ -447,13 +490,38 @@ function DashboardPage() {
                           {trade.symbol}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-white">{trade.direction}</td>
-                      <td className="py-3 px-4 text-white">{trade.entry_time}</td>
+                      {/* Direction with arrow icon */}
+                      <td className="py-3 px-4">
+                        <div className={`flex items-center ${directionIcons[trade.direction]?.colorClass}`}>
+                          <img
+                            src={directionIcons[trade.direction]?.icon}
+                            alt={trade.direction}
+                            className="w-4 h-4 mr-1"
+                          />
+                          {trade.direction}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-white">
+                        {formatEntryTime(trade.entry_time)}
+                      </td>
                       <td className="py-3 px-4 text-white">{trade.entry_price}</td>
-                      <td className="py-3 px-4 text-white">{trade.stop_loss}</td>
-                      <td className="py-3 px-4 text-white">{trade.take_profit}</td>
+                      {/* SL red */}
+                      <td className="py-3 px-4 text-red-400">{trade.stop_loss}</td>
+                      {/* TP green */}
+                      <td className="py-3 px-4 text-green-400">{trade.take_profit}</td>
                       <td className="py-3 px-4 text-white">{trade.initial_margin}</td>
-                      <td className="py-3 px-4 text-white">{trade.status}</td>
+                      {/* Status: TP green, SL red, else white */}
+                      <td
+                        className={`py-3 px-4 ${
+                          trade.status === 'TP'
+                            ? 'text-green-400'
+                            : trade.status === 'SL'
+                            ? 'text-red-400'
+                            : 'text-white'
+                        }`}
+                      >
+                        {trade.status}
+                      </td>
                       <td className="py-3 px-4 text-white">{trade.PNL}</td>
                     </tr>
                   ))
