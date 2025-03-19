@@ -381,7 +381,8 @@ def open_trade():
                 results.append({"user_id": user_id, "status": "success", "order": order_resp.json()})
                 position_data = get_position_info(info["symbol"], info["api_key"], info["secret_key"], BASE_URL)
                 print("position_data retCode -> ",position_data["retCode"])
-                if position_data["retCode"] == 0 and position_data["result"]["list"]:
+                #if position_data["retCode"] == 0 and position_data["result"]["list"]:
+                if (position_data["retCode"] == 0 and position_data["result"]["list"] and  float(position_data["result"]["list"][0]['avgPrice']) != 0 ):
                     pos = position_data["result"]["list"][0]
                     record = {
                         "user_id": user_id,
@@ -399,8 +400,6 @@ def open_trade():
                         "exit_time": None
                     }
                     store_position_data_to_mongo(user_id, record)
-                    #here
-                    time.sleep(2)
                     store_data_to_journal(user_id)
 
             else:

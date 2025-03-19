@@ -50,11 +50,11 @@ function getCoinIcon(symbol) {
 const directionIcons = {
   SHORT: {
     colorClass: "text-red-400",
-    icon: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Arrow_down_red.svg", // Red arrow down (transparent)
+    icon: "https://img.icons8.com/win8/512w/FA5252/long-arrow-down.png", // Red arrow down (transparent)
   },
   LONG: {
     colorClass: "text-green-400",
-    icon: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Arrow_Up_Green.svg", // Green arrow up (transparent)
+    icon: "https://www.svgrepo.com/show/222002/up-arrow.svg", // Green arrow up (transparent)
   },
 };
 
