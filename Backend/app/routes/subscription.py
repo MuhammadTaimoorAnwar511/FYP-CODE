@@ -157,32 +157,57 @@ def check_subscription_status():
 
     return jsonify({"subscribed": bool(subscription)}), 200
 
-
 @subscription_bp.route("/delete/<user_id>/<bot_name>", methods=["DELETE"])
 def delete_subscription(user_id, bot_name):
-    
-    # Query the subscription using user_id as a string
+    # Step 1: Find the subscription
     subscription = mongo.db.subscriptions.find_one({"user_id": user_id, "bot_name": bot_name})
-
     if not subscription:
         return jsonify({"error": "No subscription found for this user and bot"}), 404
 
     bot_initial_balance = subscription.get("bot_initial_balance", 0)
 
-    # Find the user to update balance
-    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})  
+    # Step 2: Find the user
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         return jsonify({"error": "User does not exist"}), 404
 
-    # Deduct balance from user
-    new_balance = max(user.get("balance_allocated_to_bots", 0) - bot_initial_balance, 0)  
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"balance_allocated_to_bots": new_balance}})
+    # Step 3: Update user's balance values
+    new_balance = max(user.get("balance_allocated_to_bots", 0) - bot_initial_balance, 0)
+    mongo.db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"balance_allocated_to_bots": new_balance}}
+    )
 
+    new_user_current_balance = max(user.get("user_current_balance", 0) - bot_initial_balance, 0)
+    mongo.db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"user_current_balance": new_user_current_balance}}
+    )
 
-    new_user_current_balance = user.get("user_current_balance", 0) - bot_initial_balance
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"user_current_balance": new_user_current_balance}})
+    # Step 4: Delete subscription entry
+    mongo.db.subscriptions.delete_one({"user_id": user_id, "bot_name": bot_name})
 
-    # Delete the subscription
-    result = mongo.db.subscriptions.delete_one({"user_id": user_id, "bot_name": bot_name})
+    # Step 5: Delete all OPEN trades for this symbol in user_{user_id} collection
+    collection = mongo.db[f"user_{user_id}"]
+    symbol = subscription.get("symbol", "").replace("/", "")  # Example: ETH/USDT -> ETHUSDT
 
-    return jsonify({"message": f"{bot_name} Bot Subscription deleted"}), 200
+    deleted_result = collection.delete_many({"symbol": symbol, "status": "OPEN"})
+    deleted_count = deleted_result.deleted_count
+
+    # Step 6: Update journal stats based on number of deleted trades
+    journal = mongo.db.journals.find_one({"User_Id": user_id})
+    if journal:
+        updated_total_signals = max(journal.get("Total_Signals", 0) - deleted_count, 0)
+        updated_running_signals = max(journal.get("Current_Running_Signals", 0) - deleted_count, 0)
+
+        mongo.db.journals.update_one(
+            {"User_Id": user_id},
+            {"$set": {
+                "Total_Signals": updated_total_signals,
+                "Current_Running_Signals": updated_running_signals
+            }}
+        )
+
+    return jsonify({
+        "message": f"{bot_name} Bot Subscription and {deleted_count} associated OPEN trades deleted. Journal stats updated."
+    }), 200
